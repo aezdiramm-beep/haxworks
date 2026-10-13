@@ -14,7 +14,7 @@
       "binding": "DB",
       "database_name": "haxworks",
       // Replace with the id printed by: npx wrangler d1 create haxworks
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "database_id": "dcc1952e-e531-43f5-80dc-daad5bd60625",
       "migrations_dir": "d1-migrations"
     }
   ]
