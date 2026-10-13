@@ -1,0 +1,82 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #111111;
+  --color-paper: #ffffff;
+  --color-mist: #f4f4f4;
+  --color-muted: #5c5c5c;
+  --color-line: #e6e6e6;
+  --color-lavender: #efe7f7;
+  --color-lilac: #d7c4ee;
+  --color-soft: #f7f7f7;
+  --color-inverse: #ffffff;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+.hero-frame {
+  width: 100%;
+  height: 36rem;
+  object-fit: cover;
+  object-position: 64% 50%;
+}
+@media (min-width: 1024px) {
+  .hero-frame {
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+  }
+}
+.feature-frame {
+  min-height: 34rem;
+}
+.idea-card {
+  min-height: 18rem;
+}
+.star-row {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+}
+.star-row a {
+  display: flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-line);
+}
+.star-row a svg {
+  width: 2rem;
+  height: 2rem;
+}
+.star-row a.is-on,
+.star-row a:hover,
+.star-row a:hover ~ a {
+  color: var(--color-ink);
+}
+.star-row a.is-on svg,
+.star-row a:hover svg,
+.star-row a:hover ~ a svg {
+  fill: currentColor;
+}
