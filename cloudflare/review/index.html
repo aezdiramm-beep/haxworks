@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Thanks — Haxworks</title>
+    <meta property="og:title" content="Haxworks" />
+    <meta property="og:description" content="Please support our small business. A short review helps us more than you know." />
+    <meta property="og:image" content="https://haxworks.com/og.jpg" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Haxworks" />
+    <meta name="twitter:description" content="Please support our small business. A short review helps us more than you know." />
+    <meta name="twitter:image" content="https://haxworks.com/og.jpg" />
+    <link rel="icon" href="/favicon.svg" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #fff;
+        color: #111;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 1.25rem 1.5rem;
+      }
+      header a {
+        color: inherit;
+        font-size: 0.875rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-decoration: none;
+      }
+      main {
+        width: min(28rem, 100%);
+        margin: auto;
+        padding: 0 1.5rem 5rem;
+      }
+      .kicker {
+        margin: 0;
+        color: #5c5c5c;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0.75rem 0 0;
+        font-size: 2.25rem;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+      .lead {
+        margin: 0.75rem 0 0;
+        color: #5c5c5c;
+        line-height: 1.5;
+      }
+      .star-row {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+        margin-top: 2.5rem;
+      }
+      .star-row a {
+        display: flex;
+        width: 3.5rem;
+        height: 3.5rem;
+        align-items: center;
+        justify-content: center;
+        color: #e6e6e6;
+      }
+      .star-row svg {
+        width: 2rem;
+        height: 2rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+      }
+      .star-row a.is-on,
+      .star-row a:hover,
+      .star-row a:hover ~ a {
+        color: #111;
+      }
+      .star-row a.is-on svg,
+      .star-row a:hover svg,
+      .star-row a:hover ~ a svg {
+        fill: currentColor;
+      }
+      .scale {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.25rem;
+        padding: 0 0.75rem;
+        color: #5c5c5c;
+        font-size: 0.75rem;
+      }
+      form,
+      .thanks {
+        margin-top: 2rem;
+      }
+      label {
+        display: block;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+      label span {
+        font-weight: 400;
+        color: #5c5c5c;
+      }
+      textarea,
+      input[type="text"] {
+        width: 100%;
+        margin-top: 0.25rem;
+        border: 1px solid #e6e6e6;
+        border-radius: 1rem;
+        padding: 0.75rem;
+        font: inherit;
+        font-size: 0.875rem;
+      }
+      textarea {
+        min-height: 7rem;
+        resize: vertical;
+      }
+      button {
+        margin-top: 1rem;
+        border: 0;
+        border-radius: 999px;
+        background: #111;
+        color: #fff;
+        padding: 0.75rem 1.25rem;
+        font: inherit;
+        font-size: 0.875rem;
+        cursor: pointer;
+      }
+      .hint,
+      .thanks {
+        color: #5c5c5c;
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+      .thanks {
+        border-radius: 1rem;
+        background: #f4f4f4;
+        padding: 1rem;
+        color: #111;
+      }
+      .trap {
+        position: absolute;
+        left: -9999px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <header><a href="/">HAXWORKS</a></header>
+    <main>
+      <p class="kicker">A small favor</p>
+      <h1>Please support our small business.</h1>
+      <p class="lead">A short review helps us more than you know.</p>
+      <div class="star-row" aria-label="Rating from 1 to 5">
+        <a href="https://www.facebook.com/Haxworks3D/reviews" data-star="5" aria-label="5 stars"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.4 8.8l6.1.6-4.6 4.2 1.3 6-5.2-3-5.2 3 1.3-6L3.5 9.4l6.1-.6L12 3.2Z"/></svg></a>
+        <a href="https://www.facebook.com/Haxworks3D/reviews" data-star="4" aria-label="4 stars"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.4 8.8l6.1.6-4.6 4.2 1.3 6-5.2-3-5.2 3 1.3-6L3.5 9.4l6.1-.6L12 3.2Z"/></svg></a>
+        <a href="?score=3" data-star="3" aria-label="3 stars"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.4 8.8l6.1.6-4.6 4.2 1.3 6-5.2-3-5.2 3 1.3-6L3.5 9.4l6.1-.6L12 3.2Z"/></svg></a>
+        <a href="?score=2" data-star="2" aria-label="2 stars"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.4 8.8l6.1.6-4.6 4.2 1.3 6-5.2-3-5.2 3 1.3-6L3.5 9.4l6.1-.6L12 3.2Z"/></svg></a>
+        <a href="?score=1" data-star="1" aria-label="1 star"><svg viewBox="0 0 24 24"><path d="M12 3.2 14.4 8.8l6.1.6-4.6 4.2 1.3 6-5.2-3-5.2 3 1.3-6L3.5 9.4l6.1-.6L12 3.2Z"/></svg></a>
+      </div>
+      <div class="scale"><span>Not great</span><span>Loved it</span></div>
+
+      <p class="thanks" id="thanks" hidden>Got it. This will help us improve. We’re eager to do better.</p>
+
+      <form id="note" hidden method="post" action="https://formsubmit.co/hello@haxworks.com">
+        <p class="hint">Tell us what we should do better.</p>
+        <input type="hidden" name="score" id="score" value="" />
+        <input type="hidden" name="_subject" id="subject" value="Haxworks private review" />
+        <input type="hidden" name="_template" value="table" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_next" id="next" value="https://haxworks.com/review/?sent=1" />
+        <input class="trap" type="text" name="_honey" tabindex="-1" autocomplete="off" />
+        <label for="note-body">What happened</label>
+        <textarea id="note-body" name="note" required placeholder="The figure, the wait, anything that missed."></textarea>
+        <label for="name">Name <span>optional</span></label>
+        <input id="name" name="name" type="text" />
+        <button type="submit">Send note</button>
+      </form>
+    </main>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        var score = Number(q.get("score"));
+        var next = document.getElementById("next");
+        if (next) next.value = location.origin + "/review/?sent=1";
+        if (q.get("sent") === "1") {
+          document.getElementById("thanks").hidden = false;
+          return;
+        }
+        if (score < 1 || score > 3) return;
+        document.getElementById("note").hidden = false;
+        document.getElementById("score").value = score + (score === 1 ? " star" : " stars");
+        document.getElementById("subject").value =
+          "Haxworks private review — " + score + (score === 1 ? " star" : " stars");
+        document.querySelectorAll(".star-row a").forEach(function (star) {
+          if (Number(star.getAttribute("data-star")) <= score) star.classList.add("is-on");
+        });
+      })();
+    </script>
+  </body>
+</html>
