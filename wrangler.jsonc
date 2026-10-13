@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "haxworks",
+  "main": "./.output/server/index.mjs",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./.output/public",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "haxworks",
+      // Replace with the id printed by: npx wrangler d1 create haxworks
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "d1-migrations"
+    }
+  ]
+  // Secret (not stored here): npx wrangler secret put GEMINI_API_KEY
+}
