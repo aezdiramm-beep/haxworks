@@ -17,7 +17,7 @@
       button, input, select { font: inherit; }
       button { border: 0; border-radius: 999px; background: #111; color: #fff; padding: 0.65rem 1rem; cursor: pointer; }
       button.ghost { background: #f4f4f4; color: #111; }
-      button.mark-done, button.stage, button.undo { margin-left: 0.35rem; background: transparent; color: #111; padding: 0; font-size: 0.75rem; text-decoration: underline; border-radius: 0; }
+      button.mark-done, button.stage, button.undo { margin-left: 0; background: transparent; color: #111; padding: 0; font-size: 0.75rem; text-decoration: underline; border-radius: 0; }
       h2 { margin: 1.7rem 0 0.35rem; font-size: 1.05rem; font-weight: 600; }
       .list { margin: 0; padding: 0; list-style: none; }
       .list li { border-top: 1px solid #eee; padding: 0.65rem 0; font-size: 0.9rem; line-height: 1.4; }
@@ -117,7 +117,6 @@
       <h1>Orders</h1>
       <div class="stats" id="stats"></div>
       <p class="note" id="undated"></p>
-      <p class="legend"><span class="tag ship did">Solid tag</span> = already happened <span class="tag ship plan">Dashed tag</span> = planned date</p>
       <div class="filters">
         <input id="filter-q" type="search" placeholder="Search name or note" />
         <select id="filter-size">
@@ -160,12 +159,8 @@
       </div>
       <h2>Today</h2>
       <ul class="list" id="tasks"></ul>
-      <h2>Needs a look</h2>
+      <h2>Needs a look <span class="note" style="font-weight:400;font-size:0.8rem">· next 2 weeks</span></h2>
       <ul class="list" id="risks"></ul>
-      <h2>Shipments</h2>
-      <p class="note">Only figures already waiting to ship can be grouped. A later figure does not hold an earlier one.</p>
-      <div id="ship-ready"></div>
-      <div id="shipments"></div>
       <h2>Money</h2>
       <div class="filters">
         <button class="ghost" type="button" data-range="all">All</button>
@@ -495,12 +490,11 @@
           const current = group(figure.stage);
           const options = STEPS.includes(current) ? STEPS : [...STEPS, current];
           const select = `<select class="status ${STAGE_CLASS[current] || "s-pending"}" data-status data-figure="${index}" aria-label="Status">${options.map((step) => `<option value="${STAGE_VALUE[step] || step}"${step === current ? " selected" : ""}>${STEPS.includes(step) ? `${STEPS.indexOf(step) + 1}. ` : ""}${STAGE_LABEL[step] || escapeHtml(step)}</option>`).join("")}</select>`;
-          const redo = `<select class="redo" data-redo data-figure="${index}" aria-label="Redo"><option value="">Redo…</option><option value="reprint">Reprint</option><option value="repaint">Repaint</option></select>`;
           const name = order.qty > 1 ? `<span class="fig-name">Figure ${index + 1}</span>` : "";
-          const rework = figure.rework ? `<span class="tag rework-tag">⚠ ${escapeHtml(figure.rework)}</span>` : "";
-          return `<div class="fig">${name}${select}${redo}${rework}</div>`;
+          const paid = index === 0 && !done(order.status) ? `<button class="mark-done" type="button" data-complete>Mark paid in full</button>` : "";
+          return `<div class="fig">${name}${select}${paid}</div>`;
         }).join("");
-        return `${figures}${done(order.status) ? "" : `<button class="mark-done" type="button" data-complete>Mark paid in full</button>`}`;
+        return figures;
       }
       function shipNote(order, figures) {
         const plan = figures[0];
@@ -510,16 +504,9 @@
           const date = value instanceof Date ? value : parseISO(String(value).slice(0, 10));
           return date ? formatDay(date) : "—";
         };
-        if (painterOf(order) === "local") return `<div class="tags"><span class="tag local">⚡ Local rush</span></div>`;
-        const tag = (cls, kind, icon, text) => `<span class="tag ${cls} ${kind}">${icon} ${text}</span>`;
-        const out = [`<span class="tag remote">🚚 Remote painter</span>`];
-        const shipDay = day(stored.shipOut || plan?.ship);
-        if (shipDay !== "—") out.push(tag("ship", stored.shipOut ? "did" : "plan", "📦", `${stored.shipOut ? "Shipped" : "Ship"} ${shipDay}`));
-        const arriveDay = day(stored.actualArrival || stored.expectedArrival || plan?.arrival);
-        if (arriveDay !== "—") out.push(tag("arrive", stored.actualArrival ? "did" : "plan", stored.actualArrival ? "✔" : "📍", `${stored.actualArrival ? "Arrived" : "Arrives"} ${arriveDay}`));
-        const paintDay = day(plan?.paint);
-        if (paintDay !== "—") out.push(tag("paint", stored.paintFinished ? "did" : "plan", "🎨", `Paint ${paintDay}`));
-        return `<div class="tags">${out.join("")}</div>`;
+        return painterOf(order) === "local"
+          ? `<div class="tags"><span class="tag local">⚡ Local rush</span></div>`
+          : `<div class="tags"><span class="tag remote">🚚 Remote painter</span></div>`;
       }
       function render() {
         const completed = orders.filter((order) => done(order.status));
@@ -652,41 +639,30 @@
         document.querySelector("#tasks").innerHTML = tasks.length
           ? tasks.map((task) => `<li>${escapeHtml(task.text)}${task.stage ? `<button class="tiny" type="button" data-task="${task.stage}" data-order="${task.orderId}" data-figure="${task.index}">Do this</button>` : ""}</li>`).join("")
           : `<li class="note">Nothing queued for today.</li>`;
-        const risks = placed.filter((figure) => !figure.ok && figure.stage !== "Completed");
-        document.querySelector("#risks").innerHTML = risks.length
-          ? risks.map((figure) => {
-              const order = orders.find((item) => item.id === figure.orderId);
-              const due = order?.due ? formatDay(parseISO(order.due)) : "no date";
-              const finish = figure.finish ? formatDay(figure.finish) : "not placed";
-              const reason = !figure.finish ? "There is no open print and paint path before the due date." : `It finishes ${finish}, after the due date.`;
-              return `<li><strong>${escapeHtml(order?.name || "Order")}</strong> · ${escapeHtml(figure.stage || "Pending")}<br><span class="note">${escapeHtml(order?.id || "")} · Due ${due} · Expected ${finish}. ${escapeHtml(reason)}</span></li>`;
-            }).join("")
-          : `<li class="note">No dated order is late.</li>`;
-        const claimed = new Set(shipments.filter((shipment) => shipment.status !== "Received Back").flatMap((shipment) => (shipment.figures || []).map((figure) => figure.key)));
-        const ready = [];
-        for (const order of orders) {
-          if (painterOf(order) !== "remote") continue;
-          withFigures(order).figures.forEach((figure, index) => {
-            const key = `${order.id}:${index}`;
-            if (figure.stage === "Ready for Ship-out" && !claimed.has(key)) ready.push({ key, orderId: order.id, index, name: order.name });
-          });
+        const horizon = new Date(startOfDay(new Date()).getTime());
+        horizon.setDate(horizon.getDate() + 14);
+        const atRisk = new Map();
+        for (const figure of placed.filter((item) => !item.ok && item.stage !== "Completed")) {
+          if (!atRisk.has(figure.orderId)) atRisk.set(figure.orderId, figure);
         }
-        document.querySelector("#ship-ready").innerHTML = ready.length
-          ? `${ready.map((figure) => `<label class="note"><input type="checkbox" data-pack="${figure.key}" /> ${escapeHtml(figure.name)}</label>`).join(" ")} <button class="tiny" id="make-shipment" type="button">Group shipment</button>`
-          : `<p class="note">No figure is waiting to ship.</p>`;
-        document.querySelector("#shipments").innerHTML = shipments.map((shipment) => `<div class="list"><div><strong>${escapeHtml(shipment.id)}</strong> · ${escapeHtml(shipment.status)}<br><span class="note">${escapeHtml((shipment.figures || []).map((figure) => figure.name).join(", ") || "No figures")}</span></div>
-          <label class="note">Courier <input data-ship="${shipment.id}" data-field="courier" value="${escapeHtml(shipment.courier || "")}" /></label>
-          <label class="note">Tracking <input data-ship="${shipment.id}" data-field="tracking" value="${escapeHtml(shipment.tracking || "")}" /></label>
-          <label class="note">Ship cost <input data-ship="${shipment.id}" data-field="cost" type="number" min="0" step="0.01" value="${shipment.cost || ""}" /></label>
-          <label class="note">Return cost <input data-ship="${shipment.id}" data-field="returnCost" type="number" min="0" step="0.01" value="${shipment.returnCost || ""}" /></label>
-          <p class="note">Ship ${shipment.shipOut ? formatDay(parseISO(shipment.shipOut)) : "—"} · Expected ${shipment.expectedArrival ? formatDay(parseISO(shipment.expectedArrival)) : "—"} · Arrived ${shipment.actualArrival ? formatDay(parseISO(shipment.actualArrival)) : "—"} · Return ${shipment.returnShip || "—"} · Back ${shipment.returnArrival || "—"}</p>
-          <button class="tiny" type="button" data-ship-do="Shipped" data-id="${shipment.id}">Mark shipped</button>
-          <button class="tiny" type="button" data-ship-do="Received" data-id="${shipment.id}">Mark received</button>
-          <button class="tiny" type="button" data-ship-do="Painting" data-id="${shipment.id}">Start painting</button>
-          <button class="tiny" type="button" data-ship-do="Completed" data-id="${shipment.id}">Painting done</button>
-          <button class="tiny" type="button" data-ship-do="Return" data-id="${shipment.id}">Return shipment</button>
-          <button class="tiny" type="button" data-ship-do="Back" data-id="${shipment.id}">Received back</button>
-        </div>`).join("");
+        const soon = orders
+          .filter((order) => order.due && !["Completed", "Cancelled"].includes(group(orderStage(order))))
+          .filter((order) => parseISO(order.due) <= horizon)
+          .sort((a, b) => String(a.due).localeCompare(String(b.due)));
+        const dayMs = 24 * 60 * 60 * 1000;
+        document.querySelector("#risks").innerHTML = soon.length
+          ? soon.map((order) => {
+              const left = Math.round((parseISO(order.due) - startOfDay(new Date())) / dayMs);
+              const when = left < 0 ? `${-left} day${left === -1 ? "" : "s"} overdue` : left === 0 ? "due today" : `due in ${left} day${left === 1 ? "" : "s"}`;
+              const risk = atRisk.get(order.id);
+              const note = !risk
+                ? "On track."
+                : !risk.finish
+                  ? "No open print and paint slot before the due date."
+                  : `Will finish ${formatDay(risk.finish)}, after the due date.`;
+              return `<li><strong>${escapeHtml(order.name)}</strong> · ${escapeHtml(STAGE_LABEL[group(orderStage(order))] || group(orderStage(order)))}<br><span class="note">Due ${formatDay(parseISO(order.due))} (${when}). ${risk ? "⚠ " : ""}${note}</span></li>`;
+            }).join("")
+          : `<li class="note">Nothing is due in the next 2 weeks.</li>`;
         const chosen = moneyOrders();
         const totals = chosen.reduce((sum, order) => {
           const moneyRow = moneyOf(order);
