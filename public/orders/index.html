@@ -108,6 +108,7 @@
     <header>
       <a href="/">HAXWORKS</a>
       <div class="tools">
+        <span id="sync-state" class="note" style="font-size:0.75rem"></span>
         <button class="ghost" id="open-cal" type="button">Calendar</button>
         <button id="open-add" type="button">Add order</button>
       </div>
@@ -277,16 +278,7 @@
       const HOURS = 8;
       const WORKDAYS = [1, 2, 3, 4, 5];
       const money = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
-      const SEED = [
-        { id: "1", name: "CES DUNA", size: "Jumbo 10\"", qty: 1, due: "", paid: 1000, balance: 1000, status: "Pending", note: "", rushDays: 0 },
-        { id: "2", name: "Rizza diaz", size: "Standard 4\"", qty: 2, due: "2026-09-29", paid: 1398, balance: 0, status: "Completed", note: "", rushDays: 0 },
-        { id: "3", name: "Amer", size: "Standard 4\"", qty: 1, due: "", paid: 350, balance: 349, status: "Completed", note: "", rushDays: 0 },
-        { id: "4", name: "Boye", size: "Standard 4\"", qty: 1, due: "2026-10-20", paid: 600, balance: 599, status: "Completed", note: "With dog", rushDays: 0 },
-        { id: "5", name: "Joey", size: "Standard 4\"", qty: 2, due: "", paid: 899, balance: 899, status: "Pending", note: "", rushDays: 0 },
-        { id: "6", name: "Kaselyn", size: "Super 6\"", qty: 2, due: "2026-10-15", paid: 1800, balance: 1798, status: "Pending", note: "", rushDays: 0 },
-        { id: "7", name: "Aly", size: "Standard 4\"", qty: 1, due: "2026-10-14", paid: 449, balance: 450, status: "Pending", note: "", rushDays: 0 },
-        { id: "8", name: "Chris", size: "Super 6\"", qty: 1, due: "2026-10-15", paid: 900, balance: 899, status: "Pending", note: "", rushDays: 0 },
-      ];
+      const SEED = [];
 
       let sortKey = "due";
       let sortDir = 1;
@@ -1230,6 +1222,133 @@
       };
 
       render();
+
+      // ---- Shared storage: every hax-* setting/order is mirrored to the server so all devices match. ----
+      (() => {
+        const PREFIX = "hax-";
+        const FLAG = "hax-synced";
+        const nativeSet = Storage.prototype.setItem;
+        const nativeRemove = Storage.prototype.removeItem;
+        const label = document.querySelector("#sync-state");
+        const show = (text) => { label.textContent = text; };
+        let version = 0;
+        let ready = false;
+        let busy = false;
+        let dirty = false;
+        let timer = null;
+
+        function localDoc() {
+          const doc = {};
+          for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (key.startsWith(PREFIX) && key !== FLAG) doc[key] = localStorage.getItem(key);
+          }
+          return doc;
+        }
+        function listOf(value) { try { const v = JSON.parse(value || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } }
+        // Union of orders by id; `winner` decides which copy is kept when both devices have the same id.
+        function merge(server, local, winner) {
+          const out = { ...local, ...server };
+          if (winner === "local") Object.assign(out, local);
+          for (const key of ["hax-orders", "hax-closures", "hax-shipments"]) {
+            if (server[key] === undefined && local[key] === undefined) continue;
+            const first = listOf(winner === "local" ? local[key] : server[key]);
+            const second = listOf(winner === "local" ? server[key] : local[key]);
+            const seen = new Set(first.map((item) => item.id ?? JSON.stringify(item)));
+            out[key] = JSON.stringify([...first, ...second.filter((item) => !seen.has(item.id ?? JSON.stringify(item)))]);
+          }
+          return out;
+        }
+        function applyLocally(doc) {
+          for (const key of Object.keys(doc)) nativeSet.call(localStorage, key, doc[key]);
+          for (const key of Object.keys(localDoc())) if (!(key in doc)) nativeRemove.call(localStorage, key);
+          orders = load().map(withFigures);
+          loadExtra();
+          render();
+          drawCalendar();
+        }
+        function login() {
+          if (document.querySelector("#login-gate")) return;
+          const gate = document.createElement("div");
+          gate.id = "login-gate";
+          gate.style.cssText = "position:fixed;inset:0;background:#fff;z-index:50;display:grid;place-items:center;padding:1.5rem";
+          gate.innerHTML = `<form style="width:min(20rem,100%);text-align:center"><p class="note" style="letter-spacing:.2em;font-weight:800;font-size:.8rem">HAXWORKS</p><h1 style="margin:.5rem 0 1rem;font-size:1.6rem">Orders</h1><input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box" /><button type="submit" style="margin-top:.6rem;width:100%">Open</button><p id="login-err" class="note" style="color:#b3261e;min-height:1.2rem"></p></form>`;
+          document.body.appendChild(gate);
+          const input = gate.querySelector("#login-pass");
+          input.focus();
+          gate.querySelector("form").onsubmit = async (event) => {
+            event.preventDefault();
+            const response = await fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: input.value }) }).catch(() => null);
+            if (response?.ok) { gate.remove(); start(); }
+            else gate.querySelector("#login-err").textContent = response ? "Wrong password." : "No connection.";
+          };
+        }
+        async function start() {
+          show("Syncing…");
+          const response = await fetch("/api/orders", { cache: "no-store" }).catch(() => null);
+          if (!response) { show("Offline — saved on this device only"); return; }
+          if (response.status === 401) { show(""); login(); return; }
+          const remote = await response.json();
+          const firstTime = localStorage.getItem(FLAG) !== "1";
+          const local = localDoc();
+          const merged = firstTime ? merge(remote.data || {}, local, "server") : (remote.data || {});
+          version = remote.version;
+          applyLocally(merged);
+          nativeSet.call(localStorage, FLAG, "1");
+          ready = true;
+          if (firstTime && JSON.stringify(merged) !== JSON.stringify(remote.data || {})) await push();
+          show("Synced ✓");
+        }
+        async function push() {
+          if (busy) { dirty = true; return; }
+          busy = true;
+          dirty = false;
+          show("Saving…");
+          try {
+            let response = await fetch("/api/orders", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: localDoc(), baseVersion: version }) });
+            if (response.status === 409) {
+              // Another device saved first: keep both devices' orders (this device wins ties), then save again.
+              const theirs = await response.json();
+              const merged = merge(theirs.data || {}, localDoc(), "local");
+              version = theirs.version;
+              applyLocally(merged);
+              response = await fetch("/api/orders", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: merged, baseVersion: version }) });
+            }
+            if (response.status === 401) { show(""); login(); return; }
+            if (!response.ok) throw new Error("save failed");
+            version = (await response.json()).version;
+            show("Synced ✓");
+          } catch {
+            show("Offline — will retry");
+            dirty = true;
+          } finally {
+            busy = false;
+            if (dirty) { clearTimeout(timer); timer = setTimeout(() => { timer = null; push(); }, 4000); }
+          }
+        }
+        // Any change to a hax-* value schedules a save.
+        Storage.prototype.setItem = function (key, value) {
+          nativeSet.call(this, key, value);
+          if (this === localStorage && ready && String(key).startsWith(PREFIX) && key !== FLAG) {
+            clearTimeout(timer);
+            timer = setTimeout(() => { timer = null; push(); }, 500);
+          }
+        };
+        async function pull() {
+          if (!ready || busy || dirty || timer || document.querySelector("dialog[open]") || document.hidden) return;
+          const response = await fetch("/api/orders", { cache: "no-store" }).catch(() => null);
+          if (!response?.ok) return;
+          const remote = await response.json();
+          if (remote.version === version) return;
+          version = remote.version;
+          applyLocally(remote.data || {});
+          show("Synced ✓");
+        }
+        setInterval(pull, 15000);
+        document.addEventListener("visibilitychange", pull);
+        window.addEventListener("online", () => { if (ready) push(); });
+        start();
+      })();
     </script>
   </body>
 </html>
