@@ -286,7 +286,7 @@ function pinStage(figure, loads, today, settings) {
     const ship = remote ? addDays(printEnd, 1) : null;
     return { paint, ship, arrival: ship ? addDays(ship, transit) : null };
   };
-  if (stage === "Completed" || stage === "On Hold" || stage === "Cancelled") {
+  if (stage === "Completed" || stage === "Shipping" || stage === "On Hold" || stage === "Cancelled") {
     stampPrint();
     const painted = parseStamp(figure.paintFinished) || parseStamp(figure.paintStarted);
     if (painted) occupyPaint(loads, painted, figure.size);
@@ -417,7 +417,7 @@ export function optimizeProductionSchedule(orders, settings) {
       ...figure,
       ...slot,
       locked: true,
-      ok: figure.stage === "Completed" || !figure.promised || (Boolean(finish) && dayKey(finish) <= dayKey(figure.promised)),
+      ok: figure.stage === "Completed" || figure.stage === "Shipping" || !figure.promised || (Boolean(finish) && dayKey(finish) <= dayKey(figure.promised)),
     });
   }
   const pending = figures.filter((item) => item.stage === "Pending");

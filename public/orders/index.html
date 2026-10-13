@@ -116,7 +116,6 @@
       <p class="note">Only for you</p>
       <h1>Orders</h1>
       <div class="stats" id="stats"></div>
-      <div class="stats prod" id="production"></div>
       <p class="note" id="undated"></p>
       <p class="legend"><span class="tag ship did">Solid tag</span> = already happened <span class="tag ship plan">Dashed tag</span> = planned date</p>
       <div class="filters">
@@ -128,17 +127,17 @@
           <option>Jumbo 10"</option>
         </select>
         <select id="filter-status">
-          <option value="">All stages</option>
-          <option>Pending</option>
-          <option>Printing</option>
-          <option>Ready for Ship-out</option>
-          <option>Shipped</option>
-          <option>Received</option>
-          <option>Ready for Painting</option>
-          <option>Painting</option>
-          <option>Completed</option>
-          <option>On Hold</option>
-          <option>Cancelled</option>
+          <option value="">All orders</option>
+          <option value="@open">Not completed (in progress)</option>
+          <option value="@done">Completed (delivered)</option>
+          <optgroup label="By step">
+            <option value="Designing">✏️ Designing</option>
+            <option value="Printing">🖨️ Printing</option>
+            <option value="Painting">🎨 Painting</option>
+            <option value="Shipping">🚚 Shipping</option>
+            <option value="On Hold">⏸️ On hold</option>
+            <option value="Cancelled">✖ Cancelled</option>
+          </optgroup>
         </select>
         <label class="ship">Ship days <input id="ship-days" type="number" min="0" value="1" /></label>
       </div>
@@ -192,6 +191,8 @@
         <label class="ship">Return days <input id="return-days" type="number" min="0" value="1" /></label>
       </div>
       <ul class="list" id="closures"></ul>
+      <h2>Production summary</h2>
+      <div class="stats prod" id="production"></div>
     </main>
 
     <dialog id="editor">
@@ -310,7 +311,9 @@
         return orders
           .filter((order) => {
             if (size && order.size !== size) return false;
-            if (status && orderStage(order) !== status) return false;
+            if (status === "@open") { if (["Completed", "Cancelled"].includes(group(orderStage(order)))) return false; }
+            else if (status === "@done") { if (group(orderStage(order)) !== "Completed") return false; }
+            else if (status && group(orderStage(order)) !== status) return false;
             if (query && !`${order.name} ${order.note || ""}`.toLowerCase().includes(query)) return false;
             return true;
           })
@@ -362,9 +365,16 @@
         if (stages.some((stage) => stage === "Ready for Ship-out")) return "Ready for Ship-out";
         if (stages.some((stage) => stage === "Ready for Painting")) return "Ready for Painting";
         if (stages.some((stage) => stage === "Printing")) return "Printing";
+        if (stages.some((stage) => stage === "Shipping")) return "Shipping";
         if (stages.some((stage) => stage === "On Hold")) return "On Hold";
         if (stages.every((stage) => stage === "Cancelled")) return "Cancelled";
         return "Pending";
+      }
+      // Simple 5-step view of the detailed internal stages.
+      function group(stage) {
+        if (stage === "Pending") return "Designing";
+        if (["Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting"].includes(stage)) return "Painting";
+        return stage;
       }
       function nowStamp() {
         const date = new Date();
@@ -389,7 +399,8 @@
         }
         if (stage === "Ready for Painting") return { ...next, printStarted: figure.printStarted || now, printFinished: figure.stage === "Painting" ? "" : (figure.printFinished || now), paintStarted: "" };
         if (stage === "Painting") return { ...next, paintStarted: figure.stage === "Completed" ? figure.paintStarted : figure.paintStarted || now, paintFinished: "" };
-        if (stage === "Completed") return { ...next, paintFinished: now };
+        if (stage === "Shipping") return { ...next, printFinished: figure.printFinished || now, paintFinished: figure.paintFinished || now };
+        if (stage === "Completed") return { ...next, paintFinished: figure.paintFinished || now };
         return next;
       }
       function reworkFigure(figure, kind, painter) {
@@ -450,7 +461,7 @@
         };
       }
       function capacityOrders(skipId) {
-        const busy = (order) => withFigures(order).figures.some((figure) => ["Printing", "Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting"].includes(figure.stage));
+        const busy = (order) => withFigures(order).figures.some((figure) => ["Printing", "Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting", "Shipping"].includes(figure.stage));
         return orders
           .filter((order) => order.id !== skipId && (busy(order) || (!done(order.status) && order.due)))
           .map((order) => ({
@@ -465,32 +476,25 @@
           }));
       }
       const STAGE_LABEL = {
-        Pending: "⏳ Pending",
+        Designing: "✏️ Designing",
         Printing: "🖨️ Printing",
-        "Ready for Ship-out": "📦 Printed – to ship",
-        Shipped: "🚚 Shipping",
-        Received: "📍 Arrived at painter",
-        "Ready for Painting": "🖨️ Printed – ready to paint",
         Painting: "🎨 Painting",
+        Shipping: "🚚 Shipping",
         Completed: "✅ Completed",
         "On Hold": "⏸️ On hold",
         Cancelled: "✖ Cancelled",
       };
       const STAGE_CLASS = {
-        Pending: "s-pending", Printing: "s-printing", "Ready for Ship-out": "s-toship", Shipped: "s-shipping",
-        Received: "s-arrived", "Ready for Painting": "s-paintready", Painting: "s-painting", Completed: "s-done",
+        Designing: "s-pending", Printing: "s-printing", Painting: "s-painting", Shipping: "s-shipping", Completed: "s-done",
       };
-      function stagePath(remote) {
-        return remote
-          ? ["Pending", "Printing", "Ready for Ship-out", "Shipped", "Received", "Painting", "Completed"]
-          : ["Pending", "Printing", "Ready for Painting", "Painting", "Completed"];
-      }
+      // What each dropdown choice stores (Designing is the "Pending" stage).
+      const STAGE_VALUE = { Designing: "Pending" };
+      const STEPS = ["Designing", "Printing", "Painting", "Shipping", "Completed"];
       function stageCell(order) {
-        const remote = painterOf(order) === "remote";
-        const path = stagePath(remote);
         const figures = withFigures(order).figures.map((figure, index) => {
-          const options = path.includes(figure.stage) ? path : [...path, figure.stage];
-          const select = `<select class="status ${STAGE_CLASS[figure.stage] || "s-pending"}" data-status data-figure="${index}" aria-label="Status">${options.map((stage, position) => `<option value="${stage}"${stage === figure.stage ? " selected" : ""}>${position + 1 <= path.length && path.includes(stage) ? `${position + 1}. ` : ""}${STAGE_LABEL[stage] || escapeHtml(stage)}</option>`).join("")}</select>`;
+          const current = group(figure.stage);
+          const options = STEPS.includes(current) ? STEPS : [...STEPS, current];
+          const select = `<select class="status ${STAGE_CLASS[current] || "s-pending"}" data-status data-figure="${index}" aria-label="Status">${options.map((step) => `<option value="${STAGE_VALUE[step] || step}"${step === current ? " selected" : ""}>${STEPS.includes(step) ? `${STEPS.indexOf(step) + 1}. ` : ""}${STAGE_LABEL[step] || escapeHtml(step)}</option>`).join("")}</select>`;
           const redo = `<select class="redo" data-redo data-figure="${index}" aria-label="Redo"><option value="">Redo…</option><option value="reprint">Reprint</option><option value="repaint">Repaint</option></select>`;
           const name = order.qty > 1 ? `<span class="fig-name">Figure ${index + 1}</span>` : "";
           const rework = figure.rework ? `<span class="tag rework-tag">⚠ ${escapeHtml(figure.rework)}</span>` : "";
@@ -525,21 +529,20 @@
         document.querySelector("#stats").innerHTML = [
           ["Orders", orders.length],
           ["Completed", completed.length],
-          ["Pending", pending.length],
+          ["In progress", pending.length],
           ["Amount paid", money.format(paid)],
           ["Balance", money.format(balance)],
         ].map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
         const placed = optimizeProductionSchedule(capacityOrders(), shop()).placed;
         const risk = new Set(placed.filter((figure) => !figure.ok && figure.stage !== "Completed").map((figure) => figure.orderId));
-        const count = (stage) => orders.filter((order) => orderStage(order) === stage).length;
+        const count = (step) => orders.filter((order) => group(orderStage(order)) === step).length;
         const production = [
-          ["Pending", count("Pending")],
-          ["Printing", count("Printing")],
-          ["To ship", count("Ready for Ship-out")],
-          ["Shipped", count("Shipped") + count("Received")],
-          ["Painting", count("Painting") + count("Ready for Painting")],
-          ["Completed", count("Completed")],
-          ["At risk", orders.filter((order) => risk.has(order.id) && orderStage(order) !== "Completed").length],
+          ["✏️ Designing", count("Designing")],
+          ["🖨️ Printing", count("Printing")],
+          ["🎨 Painting", count("Painting")],
+          ["🚚 Shipping", count("Shipping")],
+          ["✅ Completed", count("Completed")],
+          ["⚠ At risk", orders.filter((order) => risk.has(order.id) && orderStage(order) !== "Completed").length],
         ];
         document.querySelector("#production").innerHTML = production.map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
         const missing = pending.filter((order) => !order.due);
@@ -642,7 +645,8 @@
             if (figure.stage === "Ready for Painting" || figure.stage === "Received") tasks.push({ text: `Prepare ${name} for painting.`, orderId: order.id, index, stage: "Painting" });
             if (figure.stage === "Ready for Ship-out") tasks.push({ text: `Pack and ship ${name} to the remote painter.`, orderId: order.id, index, stage: "Shipped" });
             if (figure.stage === "Shipped") tasks.push({ text: `Check ${name}. Mark received only if the painter has it.`, orderId: order.id, index, stage: "Received" });
-            if (figure.stage === "Painting") tasks.push({ text: `Check the paint on ${name}. Mark it done only when painting is finished.`, orderId: order.id, index, stage: "Completed" });
+            if (figure.stage === "Painting") tasks.push({ text: `Painting finished on ${name}? Mark it ready for shipping to the customer.`, orderId: order.id, index, stage: "Shipping" });
+            if (figure.stage === "Shipping") tasks.push({ text: `Confirm ${name} was delivered to the customer.`, orderId: order.id, index, stage: "Completed" });
           });
         }
         document.querySelector("#tasks").innerHTML = tasks.length
@@ -721,7 +725,7 @@
         document.querySelector("#delete-order").hidden = !order;
         const stages = document.querySelector("#figure-stages");
         stages.innerHTML = order
-          ? withFigures(order).figures.map((figure, index) => `<label>Figure ${index + 1} <select data-fix-stage="${index}">${["Pending", "Printing", "Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting", "Completed", "On Hold", "Cancelled"].map((stage) => `<option${stage === figure.stage ? " selected" : ""}>${stage}</option>`).join("")}</select></label>`).join("")
+          ? withFigures(order).figures.map((figure, index) => `<label>Figure ${index + 1} <select data-fix-stage="${index}">${["Pending", "Printing", "Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting", "Shipping", "Completed", "On Hold", "Cancelled"].map((stage) => `<option${stage === figure.stage ? " selected" : ""}>${stage}</option>`).join("")}</select></label>`).join("")
           : "";
         if (order) {
           for (const key of ["name", "size", "qty", "due", "rushDays", "paid", "balance", "status", "note", "painter", "price", "material", "labor", "other"]) {
@@ -1164,7 +1168,7 @@
           const order = orders.find((item) => item.id === task.dataset.order);
           const figure = order ? withFigures(order).figures[Number(task.dataset.figure)] : null;
           const remote = order && painterOf(order) === "remote";
-          const next = { Pending: "Printing", Printing: remote ? "Ready for Ship-out" : "Ready for Painting", "Ready for Ship-out": "Shipped", Shipped: "Received", Received: "Painting", "Ready for Painting": "Painting", Painting: "Completed" }[figure?.stage];
+          const next = { Pending: "Printing", Printing: remote ? "Ready for Ship-out" : "Ready for Painting", "Ready for Ship-out": "Shipped", Shipped: "Received", Received: "Painting", "Ready for Painting": "Painting", Painting: "Shipping", Shipping: "Completed" }[figure?.stage];
           if (figure && next === task.dataset.task) {
             setFigureStage(order.id, Number(task.dataset.figure), next);
             save();
@@ -1209,7 +1213,7 @@
             return order && need.includes(withFigures(order).figures[item.index]?.stage);
           });
           if (!ready) return;
-          const stage = action.dataset.shipDo === "Completed" ? "Completed" : action.dataset.shipDo;
+          const stage = action.dataset.shipDo === "Completed" ? "Shipping" : action.dataset.shipDo;
           for (const item of shipment.figures) setFigureStage(item.orderId, item.index, stage);
           shipment.status = action.dataset.shipDo === "Completed" ? "Painting Complete" : action.dataset.shipDo;
           if (action.dataset.shipDo === "Shipped") {
