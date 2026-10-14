@@ -22,6 +22,12 @@ type D1 = {
 async function getDb(): Promise<D1> {
   const { env } = (await import("cloudflare:workers")) as unknown as { env: { DB?: D1 } };
   if (!env.DB) throw new Error("D1 binding `DB` is missing — see wrangler.jsonc");
+  // Create the table on first use so no manual SQL step is needed.
+  await env.DB.prepare(
+    "create table if not exists review_notes (id integer primary key autoincrement, score integer not null check (score between 1 and 3), note text not null, name text, created_at text not null default (datetime('now')))",
+  )
+    .bind()
+    .run();
   return env.DB;
 }
 
