@@ -28,6 +28,11 @@ async function getDb(): Promise<D1> {
   )
     .bind()
     .run();
+  await env.DB.prepare(
+    "create table if not exists review_clicks (id integer primary key autoincrement, score integer not null, destination text not null, created_at text not null default (datetime('now')))",
+  )
+    .bind()
+    .run();
   return env.DB;
 }
 
@@ -58,4 +63,37 @@ export async function listReviewNotes(key: string): Promise<ReviewNote[] | null>
     name: row.name,
     createdAt: row.created_at,
   }));
+}
+
+/** Record that someone tapped a star (before they are sent on). */
+export async function logReviewClick(score: number, destination: "facebook" | "form") {
+  const db = await getDb();
+  await db
+    .prepare("insert into review_clicks (score, destination) values (?1, ?2)")
+    .bind(score, destination)
+    .run();
+}
+
+export type ReviewClicks = {
+  totals: { score: number; count: number }[];
+  recent: { id: number; score: number; destination: string; at: string }[];
+};
+
+export async function listReviewClicks(key: string): Promise<ReviewClicks | null> {
+  if (key !== NOTES_KEY) return null;
+  const db = await getDb();
+  const totals = await db
+    .prepare("select score, count(*) as count from review_clicks group by score order by score desc")
+    .bind()
+    .all<{ score: number; count: number }>();
+  const recent = await db
+    .prepare(
+      "select id, score, destination, strftime('%Y-%m-%d %H:%M', created_at, '+8 hours') as at from review_clicks order by id desc limit 100",
+    )
+    .bind()
+    .all<{ id: number; score: number; destination: string; at: string }>();
+  return {
+    totals: totals.results.map((row) => ({ score: Number(row.score), count: Number(row.count) })),
+    recent: recent.results.map((row) => ({ id: Number(row.id), score: Number(row.score), destination: row.destination, at: row.at })),
+  };
 }

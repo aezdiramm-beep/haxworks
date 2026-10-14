@@ -10,3 +10,14 @@ export const listPrivateNotes = createServerFn({ method: "POST" })
     const { listReviewNotes } = await import("./review-notes.server");
     return listReviewNotes(data.key);
   });
+
+export const listPrivateClicks = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    const key =
+      data && typeof data === "object" && "key" in data && typeof data.key === "string" ? data.key : "";
+    return { key };
+  })
+  .handler(async ({ data }) => {
+    const { listReviewClicks } = await import("./review-notes.server");
+    return listReviewClicks(data.key);
+  });
