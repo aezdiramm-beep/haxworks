@@ -254,6 +254,7 @@
       </div>
       <div class="grid" id="cal-grid"></div>
       <div id="day-detail" class="note">Pick a date. Open or Full on the calendar is for one 4-inch.</div>
+      <button class="ghost" id="export-cal" type="button" style="margin-top: 0.8rem;">Download calendar image</button>
       <button class="ghost" id="close-cal" type="button" style="margin-top: 0.8rem;">Close</button>
     </dialog>
 
@@ -835,6 +836,113 @@
         calendar.showModal();
       };
       document.querySelector("#close-cal").onclick = () => calendar.close();
+
+      // ---- Export the month on screen as a printable planner image (PNG). ----
+      function exportCalendar() {
+        const year = shown.getFullYear();
+        const month = shown.getMonth();
+        const days = new Date(year, month + 1, 0).getDate();
+        const offset = (new Date(year, month, 1).getDay() + 6) % 7; // week starts on Monday
+        const rowsCount = Math.ceil((offset + days) / 7);
+        const byDay = new Map();
+        for (const order of orders) {
+          if (!order.due || !order.due.startsWith(`${year}-${String(month + 1).padStart(2, "0")}-`)) continue;
+          if (withFigures(order).figures.every((figure) => figure.stage === "Cancelled")) continue;
+          const key = Number(order.due.slice(8, 10));
+          byDay.set(key, [...(byDay.get(key) || []), order]);
+        }
+        const num = (value) => Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+        const pillsFor = (order) => {
+          const inches = parseSize(order.size);
+          const qty = Number(order.qty) > 1 ? `${order.qty} × ` : "";
+          const list = [{ text: `${qty}${inches ? `${inches} INCHES` : String(order.size || "").toUpperCase()} - ${String(order.name || "").toUpperCase()}`, color: "#ffe600" }];
+          const paid = Number(order.paid || 0);
+          const balance = Number(order.balance || 0);
+          if (balance <= 0 && paid > 0) list.push({ text: `FULLY PAID - ${num(paid)}`, color: "#00b050" });
+          else if (balance > 0) list.push({ text: `DP ${num(paid)}  —  BALANCE ${num(balance)}`, color: "#ff8a4c" });
+          return list;
+        };
+        const W = 2400, titleH = 470, dowH = 100, pillH = 50, gap = 12, numH = 90;
+        const rowH = [];
+        for (let r = 0; r < rowsCount; r += 1) {
+          let most = 0;
+          for (let c = 0; c < 7; c += 1) {
+            const day = r * 7 + c - offset + 1;
+            if (day >= 1 && day <= days) most = Math.max(most, (byDay.get(day) || []).reduce((sum, order) => sum + pillsFor(order).length, 0));
+          }
+          rowH.push(Math.max(250, numH + most * (pillH + gap) + 24));
+        }
+        const H = titleH + dowH + rowH.reduce((a, b) => a + b, 0);
+        const canvas = document.createElement("canvas");
+        canvas.width = W;
+        canvas.height = H;
+        const g = canvas.getContext("2d");
+        g.fillStyle = "#fff";
+        g.fillRect(0, 0, W, H);
+        const serif = '"Playfair Display","Bodoni MT","Didot","Bodoni 72",Georgia,"Times New Roman",serif';
+        const sans = '"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif';
+        g.textBaseline = "alphabetic";
+        g.fillStyle = "#4d4d4d";
+        g.font = `700 430px ${serif}`;
+        g.textAlign = "left";
+        g.fillText(new Date(year, month, 1).toLocaleDateString("en-US", { month: "long" }), 48, titleH - 55);
+        g.font = `400 110px ${serif}`;
+        g.textAlign = "right";
+        g.letterSpacing = "14px";
+        g.fillText(String(year), W - 48 + 14, titleH - 62);
+        g.letterSpacing = "0px";
+        const line = (x1, y1, x2, y2, w, color) => { g.strokeStyle = color; g.lineWidth = w; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
+        line(0, titleH - 4, W, titleH - 4, 5, "#2b2b2b");
+        const colW = W / 7;
+        g.textAlign = "center";
+        g.fillStyle = "#555";
+        g.font = `400 46px ${sans}`;
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach((label, c) => g.fillText(label, colW * c + colW / 2, titleH + 66));
+        line(0, titleH + dowH, W, titleH + dowH, 4, "#2b2b2b");
+        let y = titleH + dowH;
+        for (let r = 0; r < rowsCount; r += 1) {
+          for (let c = 0; c < 7; c += 1) {
+            const day = r * 7 + c - offset + 1;
+            const x = colW * c;
+            if (c > 0) line(x, y, x, y + rowH[r], 2, "#8c8c8c");
+            if (day < 1 || day > days) continue;
+            g.fillStyle = "#444";
+            g.font = `400 52px ${sans}`;
+            g.textAlign = "center";
+            g.fillText(String(day), x + colW / 2, y + 62);
+            let py = y + numH;
+            for (const order of byDay.get(day) || []) {
+              for (const pill of pillsFor(order)) {
+                let size = 30;
+                g.font = `600 ${size}px ${sans}`;
+                while (g.measureText(pill.text).width > colW - 56 && size > 14) { size -= 1; g.font = `600 ${size}px ${sans}`; }
+                const w = Math.min(colW - 24, g.measureText(pill.text).width + 44);
+                g.fillStyle = pill.color;
+                g.beginPath();
+                g.roundRect(x + (colW - w) / 2, py, w, pillH, pillH / 2);
+                g.fill();
+                g.fillStyle = "#111";
+                g.textBaseline = "middle";
+                g.fillText(pill.text, x + colW / 2, py + pillH / 2 + 2);
+                g.textBaseline = "alphabetic";
+                py += pillH + gap;
+              }
+            }
+          }
+          y += rowH[r];
+          line(0, y, W, y, 2, "#8c8c8c");
+        }
+        canvas.toBlob((blob) => {
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = `haxworks-${new Date(year, month, 1).toLocaleDateString("en-US", { month: "long" }).toLowerCase()}-${year}.png`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+        }, "image/png");
+      }
+      document.querySelector("#export-cal").onclick = exportCalendar;
       document.querySelector("#prev-month").onclick = () => {
         shown = new Date(shown.getFullYear(), shown.getMonth() - 1, 1);
         drawCalendar();
