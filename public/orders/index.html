@@ -847,7 +847,8 @@
         const byDay = new Map();
         for (const order of orders) {
           if (!order.due || !order.due.startsWith(`${year}-${String(month + 1).padStart(2, "0")}-`)) continue;
-          if (withFigures(order).figures.every((figure) => figure.stage === "Cancelled")) continue;
+          // Due calendar: only orders still in progress (skip delivered/completed and cancelled).
+          if (["Completed", "Cancelled"].includes(orderStage(order))) continue;
           const key = Number(order.due.slice(8, 10));
           byDay.set(key, [...(byDay.get(key) || []), order]);
         }
