@@ -17,6 +17,7 @@ import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SiteFileRouteImport } from './routes/site-file'
 import { Route as ApiDeskRouteImport } from './routes/api.desk'
 import { Route as ApiOrdersRouteImport } from './routes/api.orders'
+import { Route as ApiReviewClickRouteImport } from './routes/api.review-click'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const ApiOrdersRoute = ApiOrdersRouteImport.update({
   path: '/api/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReviewClickRoute = ApiReviewClickRouteImport.update({
+  id: '/api/review-click',
+  path: '/api/review-click',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/orders': typeof ApiOrdersRoute
+  '/api/review-click': typeof ApiReviewClickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/orders': typeof ApiOrdersRoute
+  '/api/review-click': typeof ApiReviewClickRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/orders': typeof ApiOrdersRoute
+  '/api/review-click': typeof ApiReviewClickRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/site-file'
     | '/api/desk'
     | '/api/orders'
+    | '/api/review-click'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/site-file'
     | '/api/desk'
     | '/api/orders'
+    | '/api/review-click'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/site-file'
     | '/api/desk'
     | '/api/orders'
+    | '/api/review-click'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   SiteFileRoute: typeof SiteFileRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
+  ApiReviewClickRoute: typeof ApiReviewClickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/review-click': {
+      id: '/api/review-click'
+      path: '/api/review-click'
+      fullPath: '/api/review-click'
+      preLoaderRoute: typeof ApiReviewClickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   SiteFileRoute: SiteFileRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiOrdersRoute: ApiOrdersRoute,
+  ApiReviewClickRoute: ApiReviewClickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
