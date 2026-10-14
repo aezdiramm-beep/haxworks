@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { listPrivateNotes } from "@/lib/review-notes";
+import { listPrivateClicks, listPrivateNotes } from "@/lib/review-notes";
 
 export const Route = createFileRoute("/notes")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -8,7 +8,13 @@ export const Route = createFileRoute("/notes")({
     return result;
   },
   loaderDeps: ({ search }) => ({ k: search.k ?? "" }),
-  loader: ({ deps }) => listPrivateNotes({ data: { key: deps.k } }),
+  loader: async ({ deps }) => {
+    const [notes, clicks] = await Promise.all([
+      listPrivateNotes({ data: { key: deps.k } }),
+      listPrivateClicks({ data: { key: deps.k } }),
+    ]);
+    return { notes, clicks };
+  },
   head: () => ({
     meta: [
       { title: "Notes — Haxworks" },
@@ -19,7 +25,7 @@ export const Route = createFileRoute("/notes")({
 });
 
 function NotesPage() {
-  const notes = Route.useLoaderData();
+  const { notes, clicks } = Route.useLoaderData();
 
   return (
     <main className="min-h-screen bg-paper text-ink">
@@ -50,6 +56,35 @@ function NotesPage() {
                   </li>
                 ))}
               </ul>
+            )}
+
+            <h2 className="mt-14 text-2xl font-semibold tracking-tight">Star taps</h2>
+            <p className="mt-2 text-sm text-muted">
+              Every star someone tapped on the review page, including 4–5 stars sent to Facebook. Times are Philippine time.
+            </p>
+            {!clicks || clicks.recent.length === 0 ? (
+              <p className="mt-6 text-sm">No taps yet.</p>
+            ) : (
+              <>
+                <div className="mt-6 grid grid-cols-5 gap-2 text-center">
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <div key={star} className="rounded-2xl bg-mist px-2 py-3">
+                      <p className="text-xs text-muted">{star}★</p>
+                      <p className="text-xl font-semibold">{clicks.totals.find((row) => row.score === star)?.count ?? 0}</p>
+                    </div>
+                  ))}
+                </div>
+                <ul className="mt-4 flex flex-col gap-1 text-sm">
+                  {clicks.recent.map((entry) => (
+                    <li key={entry.id} className="flex justify-between border-b border-line py-2">
+                      <span>
+                        {entry.score}★ · {entry.destination === "facebook" ? "sent to Facebook" : "opened the private note form"}
+                      </span>
+                      <span className="text-muted">{entry.at}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </>
         )}

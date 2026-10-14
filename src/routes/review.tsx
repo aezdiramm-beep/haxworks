@@ -35,7 +35,6 @@ export const Route = createFileRoute("/review")({
   component: ReviewPage,
 });
 
-const FACEBOOK_REVIEW_URL = "https://www.facebook.com/Haxworks3D/reviews";
 
 function ReviewPage() {
   const { score = 0, sent } = Route.useSearch();
@@ -58,7 +57,7 @@ function ReviewPage() {
           {[5, 4, 3, 2, 1].map((star) => (
             <a
               key={star}
-              href={star >= 4 ? FACEBOOK_REVIEW_URL : `/review?score=${star}`}
+              href={`/api/review-click?score=${star}`}
               className={star <= score ? "is-on" : undefined}
               aria-label={`${star} star${star === 1 ? "" : "s"}`}
             >
