@@ -84,6 +84,10 @@
       #done .ref { display: inline-block; background: var(--soft); border-radius: 0.8rem; padding: 0.5rem 1rem; font-weight: 700; letter-spacing: 0.08em; margin: 0.6rem 0 1rem; }
       #done .summary { text-align: left; }
       #done .actions { display: grid; gap: 0.7rem; margin-top: 1.3rem; }
+      .qrbox { text-align: center; margin: 0.8rem 0; }
+      .qrbox img { width: min(100%, 260px); border: 1px solid var(--line); border-radius: 0.8rem; }
+      .qrmeta { font-size: 0.88rem; color: var(--muted); text-align: center; margin-bottom: 0.8rem; }
+      .acct .btn { display: block; }
       .shot { background: #fff7d6; border-radius: 1rem; padding: 0.8rem 1rem; font-size: 0.95rem; margin: 0.2rem 0 0.4rem; }
       .acct { text-align: left; margin-top: 1rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0.8rem 1rem; font-size: 0.92rem; line-height: 1.5; }
     </style>
@@ -162,6 +166,7 @@
       </div>
     </main>
 
+    <script src="/order/qrcode.js"></script>
     <script>
       // ---- Shop settings: edit these lines to change what customers see. ----
       const SIZES = [
@@ -183,6 +188,11 @@
       //   { method: "GCash", details: "Haxworks · 09XX XXX XXXX" }
       // Leave the list empty to tell customers "we'll message you the payment details".
       const PAYMENT_ACCOUNTS = [];
+      // Your InstaPay / QR Ph code. The page copies it and adds the exact amount for each order.
+      // (This is the text inside your MariBank QR.) Leave "" to turn the payment QR off.
+      const PAYMENT_QR = "00020101021127580012com.p2pqrpay0111LAUIPHM2XXX0208999644030411110161057295204601653036085802PH5915KYLA TRISHIA E.6009Pagsanjan630452E1";
+      const PAYMENT_QR_LABEL = "MariBank · KYLA TRISHIA E.";
+      const QR_POINT_OF_INITIATION = "12"; // "12" = fixed amount, "11" = static
       // -----------------------------------------------------------------------
 
       const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { maximumFractionDigits: 2 });
@@ -313,6 +323,35 @@
         }
       });
 
+      function crc16(text) {
+        let c = 0xffff;
+        for (const b of new TextEncoder().encode(text)) {
+          c ^= b << 8;
+          for (let i = 0; i < 8; i += 1) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xffff : (c << 1) & 0xffff;
+        }
+        return c.toString(16).toUpperCase().padStart(4, "0");
+      }
+      function qrWithAmount(amount) {
+        const a = Number(amount).toFixed(2);
+        let body = PAYMENT_QR.slice(0, -8); // drop the old "6304XXXX" checksum
+        body = body.replace("010211", "0102" + QR_POINT_OF_INITIATION).replace("5303608", "5303608" + "54" + String(a.length).padStart(2, "0") + a);
+        body += "6304";
+        return body + crc16(body);
+      }
+      function qrPng(text) {
+        const q = qrcode(0, "M");
+        q.addData(text);
+        q.make();
+        const n = q.getModuleCount(), px = 8, quiet = 4, size = (n + quiet * 2) * px;
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = size;
+        const g = canvas.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
+        g.fillStyle = "#000";
+        for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) if (q.isDark(r, c)) g.fillRect((c + quiet) * px, (r + quiet) * px, px, px);
+        return canvas.toDataURL("image/png");
+      }
+
       function showDone(result) {
         $("formView").style.display = "none";
         $("done").style.display = "block";
@@ -323,9 +362,18 @@
         $("dSummary").innerHTML = rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
         const method = $("methodWrap").style.display === "none" ? "" : $("method").value;
         const account = PAYMENT_ACCOUNTS.find((a) => a.method === method);
-        $("acct").innerHTML = account
-          ? `<strong>How to pay ${peso(result.payNow)}</strong><br>${account.method}: ${account.details}<br>Then send a screenshot of your payment here in our chat.`
-          : `<strong>Pay ${peso(result.payNow)} to get in our queue</strong><br>Your order starts once your payment is confirmed. We'll send the payment details right here in our chat.`;
+        if (PAYMENT_QR && !account) {
+          const png = qrPng(qrWithAmount(result.payNow));
+          $("acct").innerHTML = `<strong>Scan to pay ${peso(result.payNow)}</strong>
+            <div class="qrbox"><img src="${png}" alt="Payment QR for ${peso(result.payNow)}" /></div>
+            <div class="qrmeta">${PAYMENT_QR_LABEL}<br>Open GCash, Maya or your bank app → Scan QR (or upload this QR from your gallery). The amount is filled in for you.</div>
+            <a class="btn ghost" href="${png}" download="haxworks-order-${result.ref}.png">Save QR image</a>
+            <p class="hint">Your order starts once your payment is confirmed. After paying, send a screenshot of your payment here in our chat.</p>`;
+        } else {
+          $("acct").innerHTML = account
+            ? `<strong>How to pay ${peso(result.payNow)}</strong><br>${account.method}: ${account.details}<br>Then send a screenshot of your payment here in our chat.`
+            : `<strong>Pay ${peso(result.payNow)} to get in our queue</strong><br>Your order starts once your payment is confirmed. We'll send the payment details right here in our chat.`;
+        }
         $("fbProof").href = FACEBOOK_MESSENGER;
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
