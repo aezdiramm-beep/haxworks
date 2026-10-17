@@ -45,24 +45,32 @@ export const Route = createFileRoute("/api/order-intake")({
         // Spam traps: hidden field filled in, or form submitted impossibly fast.
         if (clean(body.website, 50) || Number(body.seconds) < 3) return json({ ok: true, ref: "00000", total: 0, payNow: 0 });
 
-        const size = clean(body.size, 20);
-        const price = PRICES[size];
-        const color = clean(body.color, 40);
-        const qty = Math.round(Number(body.qty));
         const name = clean(body.name, 80);
         const contact = clean(body.contact, 120);
-        if (!price) return json({ error: "Please choose a size." }, 400);
-        if (!COLORS.includes(color)) return json({ error: "Please choose a box color." }, 400);
-        if (!(qty >= 1 && qty <= 10)) return json({ error: "Quantity must be 1 to 10." }, 400);
         if (!name || !contact) return json({ error: "Please enter your name and how to reach you." }, 400);
 
-        const total = price * qty;
+        // One or more figure lines. (An old single size/color/qty form is still accepted.)
+        const rawItems = Array.isArray(body.items) ? body.items : [{ size: body.size, color: body.color, qty: body.qty }];
+        if (rawItems.length < 1 || rawItems.length > 8) return json({ error: "Please add 1 to 8 figures." }, 400);
+        const items: { size: string; color: string; qty: number; price: number; boxName: string }[] = [];
+        for (const raw of rawItems as Record<string, unknown>[]) {
+          const size = clean(raw?.size, 20);
+          const color = clean(raw?.color, 40);
+          const qty = Math.round(Number(raw?.qty));
+          const boxName = clean(raw?.boxName, 13);
+          if (!boxName) return json({ error: "Please type the name for every box (max 13 characters)." }, 400);
+          if (!PRICES[size]) return json({ error: "Please choose a size for every figure." }, 400);
+          if (!COLORS.includes(color)) return json({ error: "Please choose a box color for every figure." }, 400);
+          if (!(qty >= 1 && qty <= 10)) return json({ error: "Quantity must be 1 to 10." }, 400);
+          items.push({ size, color, qty, price: PRICES[size], boxName });
+        }
+
+        const total = items.reduce((sum, it) => sum + it.price * it.qty, 0);
         const custom = body.payMode === "custom";
         const payNow = custom ? Math.round(Number(body.customAmount) * 100) / 100 : Math.ceil(total / 2);
         if (!(payNow > 0) || payNow > 200000) return json({ error: "Please enter a valid payment amount." }, 400);
         const dueRaw = clean(body.due, 10);
         const due = /^\d{4}-\d{2}-\d{2}$/.test(dueRaw) ? dueRaw : "";
-        const details = clean(body.details, 600);
         const method = clean(body.method, 30);
 
         const d1 = await db();
@@ -74,24 +82,30 @@ export const Route = createFileRoute("/api/order-intake")({
         if ((recent?.n ?? 0) >= 5) return json({ error: "Too many orders from this connection. Please message us on Facebook." }, 429);
 
         const money = (n: number) => `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
-        const note = [
-          "🌐 Online order",
-          `Box: ${color}`,
-          `Contact: ${contact}`,
-          `Says paying ${money(payNow)}${method ? ` via ${method}` : ""} (${custom ? "custom amount" : "50% down"}) — check payment`,
-          details ? `Details: ${details}` : "",
-        ].filter(Boolean).join(" · ");
+        // One order row per figure line, all sharing the same order number.
+        const base = Date.now();
+        const ref = String(base).slice(-5);
+        const orders = items.map((it, i) => {
+          const note = [
+            `🛒 Order #${ref}${items.length > 1 ? ` (figure ${i + 1} of ${items.length})` : ""}`,
+            `Box: ${it.color}`,
+            `Name on box: ${it.boxName}`,
+            `Contact: ${contact}`,
+            i === 0
+              ? `Says paying ${money(payNow)}${method ? ` via ${method}` : ""} (${custom ? "custom amount" : "50% down"}) for the whole order of ${money(total)} — check payment`
+              : `Payment is noted on figure 1 of order #${ref}`,
+          ].join(" · ");
+          return { id: String(base + i), name, size: it.size, qty: it.qty, due, paid: 0, balance: it.price * it.qty, status: "Pending", note, rushDays: 0, source: "online" };
+        });
 
         // Append to the shared orders list; retry if another device saved at the same moment.
-        const id = `${Date.now()}`;
-        const order = { id, name, size, qty, due, paid: 0, balance: total, status: "Pending", note, rushDays: 0, source: "online" };
         for (let attempt = 0; attempt < 4; attempt += 1) {
           const row = await d1.prepare("select value, version from app_state where key = 'orders'").bind().first<{ value: string; version: number }>();
           const doc: Record<string, string> = row ? JSON.parse(row.value) : {};
           let list: unknown[] = [];
           try { list = JSON.parse(doc["hax-orders"] || "[]"); } catch { list = []; }
           if (!Array.isArray(list)) list = [];
-          list.push(order);
+          list.push(...orders);
           doc["hax-orders"] = JSON.stringify(list);
           const version = row?.version ?? 0;
           const result = row
@@ -99,7 +113,7 @@ export const Route = createFileRoute("/api/order-intake")({
             : await d1.prepare("insert or ignore into app_state (key, value, version) values ('orders', ?1, 1)").bind(JSON.stringify(doc)).run();
           if ((result.meta?.changes ?? 0) > 0) {
             await d1.prepare("insert into order_intake_log (ip) values (?1)").bind(ip).run();
-            return json({ ok: true, ref: id.slice(-5), total, payNow });
+            return json({ ok: true, ref, total, payNow });
           }
         }
         return json({ error: "We couldn't save your order. Please try again." }, 503);
