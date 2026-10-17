@@ -3,1461 +3,306 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
-    <title>Orders — Haxworks</title>
+    <title>Order a custom figure — Haxworks</title>
+    <meta name="description" content="Pick your size, box color and payment, and place your custom figure order with Haxworks." />
     <link rel="icon" href="/favicon.svg" />
     <style>
+      :root { --ink: #111; --muted: #5c5c5c; --line: #e4e4e4; --soft: #f5f5f5; --ok: #0a7a43; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; background: #fff; color: #111; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-      header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; }
-      header a { color: inherit; font-size: 0.875rem; font-weight: 800; letter-spacing: 0.18em; text-decoration: none; }
-      main { width: min(64rem, 100%); margin: 0 auto; padding: 0 1.25rem 4rem; }
-      h1 { margin: 0.4rem 0 0; font-size: 2rem; font-weight: 600; letter-spacing: -0.03em; }
-      .tools { display: flex; gap: 0.5rem; }
-      button, input, select { font: inherit; }
-      button { border: 0; border-radius: 999px; background: #111; color: #fff; padding: 0.65rem 1rem; cursor: pointer; }
-      button.ghost { background: #f4f4f4; color: #111; }
-      button.mark-done, button.stage, button.undo { margin-left: 0; background: transparent; color: #111; padding: 0; font-size: 0.75rem; text-decoration: underline; border-radius: 0; }
-      h2 { margin: 1.7rem 0 0.35rem; font-size: 1.05rem; font-weight: 600; }
-      .list { margin: 0; padding: 0; list-style: none; }
-      .list li { border-top: 1px solid #eee; padding: 0.65rem 0; font-size: 0.9rem; line-height: 1.4; }
-      button.tiny, a.tiny { background: transparent; color: #111; padding: 0; margin-left: 0.45rem; text-decoration: underline; border-radius: 0; font-size: 0.8rem; }
-      .stats.prod { grid-template-columns: repeat(3, 1fr); }
-      .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin-top: 1.25rem; }
-      .stat { background: #f4f4f4; border-radius: 1rem; padding: 0.85rem 0.9rem; }
-      .stat span { display: block; color: #5c5c5c; font-size: 0.75rem; }
-      .stat strong { display: block; margin-top: 0.2rem; font-size: 1.15rem; }
-      .sheet { width: 100%; margin-top: 0.6rem; border-collapse: collapse; font-size: 0.9rem; }
-      .sheet th { text-align: left; color: #5c5c5c; font-size: 0.75rem; font-weight: 600; padding: 0.4rem; }
-      .sheet th button.sort { background: transparent; color: #5c5c5c; padding: 0; border-radius: 0; font-size: 0.75rem; font-weight: 600; }
-      .sheet th button.sort.on { color: #111; }
-      .filters { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
-      .filters input, .filters select { width: auto; margin: 0; flex: 1; min-width: 8rem; }
-      .filters .ship { margin: 0; font-size: 0.75rem; color: #5c5c5c; min-width: 0; flex: none; }
-      .filters .ship input { width: 4.2rem; min-width: 0; flex: none; }
-      .sheet td { padding: 0.7rem 0.4rem; border-top: 1px solid #eee; vertical-align: top; }
-      .sheet tr { cursor: pointer; }
-      .pill { display: inline-block; border-radius: 999px; padding: 0.1rem 0.5rem; background: #f4f4f4; font-size: 0.75rem; }
-      .pill.done { background: #eef6ef; }
-      .note { color: #5c5c5c; }
-      .tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
-      .tag { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 0.4rem; padding: 0.12rem 0.5rem; font-size: 0.72rem; font-weight: 600; line-height: 1.3; border: 1.5px solid transparent; white-space: nowrap; }
-      .tag.remote { background: #e8f0fe; color: #1a4fb4; border-color: #e8f0fe; border-radius: 999px; }
-      .tag.local { background: #fff0e0; color: #a85400; border-color: #fff0e0; border-radius: 999px; }
-      .tag.ship { color: #8a5a00; }
-      .tag.arrive { color: #5b3fb0; }
-      .tag.paint { color: #b0306a; }
-      .tag.plan { background: #fff; border-style: dashed; }
-      .tag.ship.plan { border-color: #e0b04a; }
-      .tag.arrive.plan { border-color: #a58ee0; }
-      .tag.paint.plan { border-color: #e48ab0; }
-      .tag.ship.did { background: #fff3d6; border-color: #fff3d6; }
-      .tag.arrive.did { background: #e6f7ec; color: #1c7a43; border-color: #e6f7ec; }
-      .tag.paint.did { background: #fde7f1; border-color: #fde7f1; }
-      .legend { font-size: 0.72rem; color: #5c5c5c; margin: 0.3rem 0 0.6rem; }
-      .legend .tag { margin: 0 0.15rem; }
-      .fig { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
-      .fig-name { font-size: 0.75rem; color: #5c5c5c; }
-      select.status, select.redo { width: auto; margin: 0; font-size: 0.8rem; font-weight: 600; border-radius: 999px; padding: 0.3rem 1.6rem 0.3rem 0.7rem; border: 1.5px solid transparent; cursor: pointer; }
-      select.redo { width: 5.4rem; font-weight: 500; background-color: #fff; border-color: #ddd; color: #5c5c5c; padding: 0.25rem 1.4rem 0.25rem 0.55rem; font-size: 0.75rem; }
-      select.status.s-pending { background-color: #f1f1f1; color: #555; }
-      select.status.s-printing { background-color: #e3efff; color: #1a4fb4; }
-      select.status.s-toship { background-color: #fff3d6; color: #8a5a00; }
-      select.status.s-shipping { background-color: #ffe6cc; color: #a85400; }
-      select.status.s-arrived { background-color: #efe7ff; color: #5b3fb0; }
-      select.status.s-paintready { background-color: #fde7f1; color: #b0306a; }
-      select.status.s-painting { background-color: #fde0ee; color: #a3195b; }
-      select.status.s-done { background-color: #e1f5e9; color: #1c7a43; }
-      .rework-tag { background: #ffe3e3; color: #b3261e; border-color: #ffe3e3; }
-      dialog { width: min(32rem, calc(100% - 2rem)); border: 0; border-radius: 1.25rem; padding: 1.25rem; }
-      dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
-      label { display: block; margin-top: 0.75rem; font-size: 0.8rem; font-weight: 600; }
-      input, select { width: 100%; margin-top: 0.25rem; border: 1px solid #e6e6e6; border-radius: 0.8rem; padding: 0.65rem 0.75rem; }
-      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
-      .cal-head { display: flex; justify-content: space-between; align-items: center; }
-      .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.3rem; margin-top: 0.8rem; }
-      .dow, .day { text-align: center; font-size: 0.75rem; }
-      .dow { color: #5c5c5c; padding-bottom: 0.2rem; }
-      .day { min-height: 3.4rem; border: 0; border-radius: 0.7rem; background: #f7f7f7; color: #111; padding: 0.3rem; }
-      .day small { display: block; color: #5c5c5c; font-size: 0.62rem; }
-      .day.has { box-shadow: inset 0 -2px 0 #111; }
-      .day.full { background: #f8ecec; }
-      .day.off { background: transparent; color: #bbb; }
-      .day.on { outline: 2px solid #111; }
-      #day-detail { margin-top: 0.9rem; font-size: 0.9rem; line-height: 1.45; }
-      .wrap { overflow-x: auto; }
-      .ask { position: fixed; right: 1.1rem; bottom: 1.1rem; width: 3.1rem; height: 3.1rem; border-radius: 999px; display: grid; place-items: center; z-index: 4; padding: 0; }
-      .ask svg { width: 1.35rem; height: 1.35rem; }
-      #chat { width: min(24rem, calc(100% - 1.5rem)); height: min(34rem, calc(100% - 2rem)); padding: 0; }
-      #chat[open] { display: flex; flex-direction: column; }
-      .chat-head { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1rem; border-bottom: 1px solid #eee; }
-      #chat-log { flex: 1; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
-      .bubble { max-width: 85%; border-radius: 1rem; padding: 0.65rem 0.8rem; font-size: 0.9rem; line-height: 1.45; }
-      .bubble.user { align-self: flex-end; background: #111; color: #fff; }
-      .bubble.assistant { align-self: flex-start; background: #f4f4f4; }
-      #chat-form { display: flex; gap: 0.4rem; padding: 0.8rem; border-top: 1px solid #eee; }
-      #chat-form input { margin: 0; }
-      #chat-form button { margin: 0; }
-      @media (max-width: 800px) {
-        .stats { grid-template-columns: 1fr 1fr; }
-        header { align-items: flex-start; gap: 0.8rem; }
-      }
+      html, body { margin: 0; background: #fff; color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+      a { color: inherit; }
+      header { padding: 1.1rem 1.25rem; }
+      header a { font-weight: 800; letter-spacing: 0.28em; font-size: 0.85rem; text-decoration: none; }
+      main { max-width: 40rem; margin: 0 auto; padding: 0.5rem 1.25rem 6rem; }
+      h1 { font-size: clamp(2rem, 7vw, 2.9rem); line-height: 1.05; letter-spacing: -0.03em; margin: 0.4rem 0 0.5rem; }
+      .lead { color: var(--muted); margin: 0 0 1.5rem; line-height: 1.5; }
+      section { margin-top: 2rem; }
+      h2 { font-size: 1.05rem; margin: 0 0 0.75rem; display: flex; gap: 0.6rem; align-items: center; }
+      h2 b { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--ink); color: #fff; font-size: 0.85rem; }
+      .hint { color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0 0; line-height: 1.45; }
+      /* choice cards */
+      .cards { display: grid; gap: 0.75rem; }
+      .card { position: relative; display: grid; grid-template-columns: 5.5rem 1fr auto; gap: 0.9rem; align-items: center; border: 2px solid var(--line); border-radius: 1.1rem; padding: 0.6rem 1rem 0.6rem 0.6rem; cursor: pointer; background: #fff; }
+      .card img { width: 5.5rem; height: 5.5rem; object-fit: cover; border-radius: 0.7rem; background: var(--soft); }
+      .card strong { display: block; font-size: 1rem; }
+      .card span.sub { color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+      .card .price { font-weight: 700; font-size: 1.05rem; }
+      input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+      .card:has(input:checked), .swatch:has(input:checked), .pay:has(input:checked) { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+      .card:has(input:focus-visible), .swatch:has(input:focus-visible), .pay:has(input:focus-visible) { outline: 3px solid #7aa7ff; outline-offset: 2px; }
+      /* colors */
+      .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
+      @media (max-width: 480px) { .swatches { grid-template-columns: repeat(2, 1fr); } }
+      .swatch { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0.5rem 0.5rem 0.6rem; cursor: pointer; font-size: 0.88rem; font-weight: 600; text-align: center; position: relative; background: #fff; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+      .swatch img { width: 100%; aspect-ratio: 581 / 720; object-fit: contain; border-radius: 0.6rem; background: #f4f4f4; }
+      .swatch:hover, .swatch:has(input:focus-visible) { transform: scale(1.08); z-index: 2; box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
+      .swatch:has(input:checked) { transform: scale(1.03); }
+      .swatch:has(input:checked):hover { transform: scale(1.08); }
+      .dot { width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 1px solid rgba(0,0,0,0.18); margin: 1.4rem 0; }
+      .dot.custom { background: conic-gradient(#ff5a5a, #ffd23f, #3fd07a, #3fa8ff, #b05cff, #ff5a5a); border-style: dashed; }
+      .callout { margin-top: 0.8rem; border-radius: 1rem; background: #fff7d6; padding: 0.9rem 1rem; font-size: 0.9rem; line-height: 1.45; display: none; }
+      .callout.on { display: block; }
+      .callout a.btn { margin-top: 0.6rem; }
+      /* fields */
+      label.field { display: block; margin-top: 0.9rem; font-size: 0.88rem; font-weight: 600; }
+      label.field small { font-weight: 400; color: var(--muted); }
+      input[type=text], input[type=number], input[type=date], textarea, select { width: 100%; margin-top: 0.35rem; border: 2px solid var(--line); border-radius: 0.8rem; padding: 0.8rem 0.9rem; font: inherit; font-weight: 400; background: #fff; color: var(--ink); }
+      input:focus, textarea:focus, select:focus { outline: none; border-color: var(--ink); }
+      textarea { min-height: 6.5rem; resize: vertical; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+      .hp { position: absolute; left: -9999px; }
+      /* payment */
+      .pay { display: block; position: relative; border: 2px solid var(--line); border-radius: 1.1rem; padding: 0.9rem 1rem; cursor: pointer; margin-bottom: 0.7rem; }
+      .pay strong { display: flex; justify-content: space-between; gap: 1rem; }
+      .pay .sub { display: block; color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+      .pay .custom-amt { display: none; margin-top: 0.6rem; }
+      .pay:has(input:checked) .custom-amt { display: block; }
+      .peso { position: relative; }
+      .peso::before { content: "₱"; position: absolute; left: 0.9rem; top: 50%; transform: translateY(-20%); color: var(--muted); }
+      .peso input { padding-left: 1.9rem; }
+      /* summary */
+      .summary { margin-top: 2rem; border-radius: 1.3rem; background: var(--soft); padding: 1.1rem 1.2rem; }
+      .summary dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 0.45rem 1rem; font-size: 0.95rem; }
+      .summary dt { color: var(--muted); }
+      .summary dd { margin: 0; text-align: right; font-weight: 600; }
+      .summary .total dt, .summary .total dd { color: var(--ink); font-weight: 800; font-size: 1.1rem; padding-top: 0.5rem; border-top: 1px solid #d8d8d8; }
+      button.primary, a.btn { display: inline-block; text-align: center; border: 0; border-radius: 999px; background: var(--ink); color: #fff; font: inherit; font-weight: 700; padding: 0.95rem 1.6rem; cursor: pointer; text-decoration: none; }
+      button.primary { width: 100%; margin-top: 1.1rem; font-size: 1.02rem; }
+      button.primary[disabled] { opacity: 0.55; cursor: wait; }
+      a.btn.ghost { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+      .error { color: #b3261e; font-size: 0.9rem; margin-top: 0.8rem; min-height: 1.2rem; }
+      /* done */
+      #done { display: none; text-align: center; padding-top: 2rem; }
+      #done .tick { width: 4rem; height: 4rem; margin: 0 auto 1rem; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 2rem; }
+      #done .ref { display: inline-block; background: var(--soft); border-radius: 0.8rem; padding: 0.5rem 1rem; font-weight: 700; letter-spacing: 0.08em; margin: 0.6rem 0 1rem; }
+      #done .summary { text-align: left; }
+      #done .actions { display: grid; gap: 0.7rem; margin-top: 1.3rem; }
+      .acct { text-align: left; margin-top: 1rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0.8rem 1rem; font-size: 0.92rem; line-height: 1.5; }
     </style>
   </head>
   <body>
-    <header>
-      <a href="/">HAXWORKS</a>
-      <div class="tools">
-        <span id="sync-state" class="note" style="font-size:0.75rem"></span>
-        <button class="ghost" id="open-cal" type="button">Calendar</button>
-        <button id="open-add" type="button">Add order</button>
-      </div>
-    </header>
+    <header><a href="/">HAXWORKS</a></header>
     <main>
-      <p class="note">Only for you</p>
-      <h1>Orders</h1>
-      <div class="stats" id="stats"></div>
-      <p class="note" id="undated"></p>
-      <div class="filters">
-        <input id="filter-q" type="search" placeholder="Search name or note" />
-        <select id="filter-size">
-          <option value="">All sizes</option>
-          <option>Standard 4"</option>
-          <option>Super 6"</option>
-          <option>Jumbo 10"</option>
-        </select>
-        <select id="filter-status">
-          <option value="">All orders</option>
-          <option value="@open">Not completed (in progress)</option>
-          <option value="@done">Completed (delivered)</option>
-          <optgroup label="By step">
-            <option value="Designing">✏️ Designing</option>
-            <option value="Printing">🖨️ Printing</option>
-            <option value="Painting">🎨 Painting</option>
-            <option value="Shipping">🚚 Shipping</option>
-            <option value="On Hold">⏸️ On hold</option>
-            <option value="Cancelled">✖ Cancelled</option>
-          </optgroup>
-        </select>
-        <label class="ship">Ship days <input id="ship-days" type="number" min="0" value="1" /></label>
+      <div id="formView">
+        <h1>Order your custom figure</h1>
+        <p class="lead">Pick a size, a box color and how you'd like to pay. It takes about a minute, and your order goes straight to our shop.</p>
+
+        <form id="order" novalidate>
+          <section>
+            <h2><b>1</b> Choose a size</h2>
+            <div class="cards" id="sizes"></div>
+          </section>
+
+          <section>
+            <h2><b>2</b> Box color</h2>
+            <div class="swatches" id="colors"></div>
+            <div class="callout" id="customNote">
+              <strong>Custom design or color?</strong> Those are planned together with you on our Facebook page, so we get every detail right.
+              You can still place this order now — we'll finish the design with you on Messenger.
+              <br /><a class="btn ghost" id="customFb" href="#" target="_blank" rel="noopener">Message us on Facebook</a>
+            </div>
+          </section>
+
+          <section>
+            <h2><b>3</b> Your details</h2>
+            <label class="field">Your name
+              <input type="text" id="name" autocomplete="name" maxlength="80" placeholder="Juan Dela Cruz" />
+            </label>
+            <label class="field">Facebook name or mobile number <small>(so we can reach you)</small>
+              <input type="text" id="contact" maxlength="120" placeholder="Facebook name or 09xx xxx xxxx" />
+            </label>
+            <div class="row">
+              <label class="field">How many?
+                <select id="qty"></select>
+              </label>
+              <label class="field">Date needed <small>(optional)</small>
+                <input type="date" id="due" />
+              </label>
+            </div>
+            <p class="hint">After you order, send your reference photos to us on Facebook.</p>
+            <input class="hp" type="text" id="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          </section>
+
+          <section>
+            <h2><b>4</b> Payment</h2>
+            <label class="pay"><input type="radio" name="pay" value="dp" checked />
+              <strong>50% down payment <span id="dpAmt">₱0</span></strong>
+              <span class="sub">Pay half now to start your order. The rest is paid before it ships.</span>
+            </label>
+            <label class="pay"><input type="radio" name="pay" value="custom" />
+              <strong>Custom amount</strong>
+              <span class="sub">For orders with extra customization, type the amount you're paying now.</span>
+              <span class="custom-amt peso"><input type="number" id="customAmt" min="1" step="1" inputmode="numeric" placeholder="Amount" /></span>
+            </label>
+            <div id="methodWrap" style="display:none">
+              <label class="field">Payment method
+                <select id="method"></select>
+              </label>
+            </div>
+            <p class="hint">No payment is taken on this page. After you submit, we'll show how to pay and you can send your proof of payment on Facebook.</p>
+          </section>
+
+          <div class="summary" aria-live="polite">
+            <dl>
+              <dt>Size</dt><dd id="sSize">—</dd>
+              <dt>Box color</dt><dd id="sColor">—</dd>
+              <dt>Quantity</dt><dd id="sQty">1</dd>
+              <dt>Order total</dt><dd id="sTotal">—</dd>
+              <dt>Paying now</dt><dd id="sNow">—</dd>
+              <dt class="total">Balance later</dt><dd class="total" id="sBal">—</dd>
+            </dl>
+          </div>
+          <div class="error" id="err" role="alert"></div>
+          <button class="primary" id="submit" type="submit">Place order</button>
+        </form>
       </div>
-      <div class="wrap">
-        <table class="sheet">
-          <thead>
-            <tr>
-              <th><button class="sort" type="button" data-sort="name" data-label="Name">Name</button></th>
-              <th><button class="sort" type="button" data-sort="size" data-label="Size">Size</button></th>
-              <th><button class="sort" type="button" data-sort="qty" data-label="Qty">Qty</button></th>
-              <th><button class="sort" type="button" data-sort="due" data-label="Due">Due</button></th>
-              <th><button class="sort" type="button" data-sort="paid" data-label="Paid">Paid</button></th>
-              <th><button class="sort" type="button" data-sort="balance" data-label="Balance">Balance</button></th>
-              <th><button class="sort" type="button" data-sort="status" data-label="Status">Status</button></th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
+
+      <div id="done">
+        <div class="tick">✓</div>
+        <h1>Order received!</h1>
+        <p class="lead">Thank you, <span id="dName"></span>. Your order is now in our queue.</p>
+        <div class="ref" id="dRef"></div>
+        <div class="summary"><dl id="dSummary"></dl></div>
+        <div class="acct" id="acct"></div>
+        <div class="actions">
+          <a class="btn" id="fbProof" href="#" target="_blank" rel="noopener">Send proof &amp; photos on Facebook</a>
+          <a class="btn ghost" href="/">Back to Haxworks</a>
+        </div>
       </div>
-      <h2>Today</h2>
-      <ul class="list" id="tasks"></ul>
-      <h2>Needs a look <span class="note" style="font-weight:400;font-size:0.8rem">· next 2 weeks</span></h2>
-      <ul class="list" id="risks"></ul>
-      <h2>Money</h2>
-      <div class="filters">
-        <button class="ghost" type="button" data-range="all">All</button>
-        <button class="ghost" type="button" data-range="today">Today</button>
-        <button class="ghost" type="button" data-range="week">This week</button>
-        <button class="ghost" type="button" data-range="month">This month</button>
-        <input id="money-from" type="date" />
-        <input id="money-to" type="date" />
-      </div>
-      <div class="stats" id="money-stats"></div>
-      <p class="note" id="money-breakdown"></p>
-      <h2>Closures</h2>
-      <div class="filters">
-        <input id="close-date" type="date" />
-        <select id="close-type">
-          <option value="print">Printer maintenance</option>
-          <option value="paint">Painter off</option>
-          <option value="shop">Shop closed</option>
-        </select>
-        <button class="ghost" id="add-close" type="button">Add</button>
-        <label class="ship">Print points <input id="print-points" type="number" min="0.5" step="0.5" value="2" /></label>
-        <label class="ship">Paint points <input id="paint-points" type="number" min="0.5" step="0.5" value="3" /></label>
-        <label class="ship">Return days <input id="return-days" type="number" min="0" value="1" /></label>
-      </div>
-      <ul class="list" id="closures"></ul>
-      <h2>Production summary</h2>
-      <div class="stats prod" id="production"></div>
     </main>
 
-    <dialog id="editor">
-      <form id="order-form">
-        <strong id="form-title">Add order</strong>
-        <label>Name <input name="name" required /></label>
-        <div class="row">
-          <label>Size
-            <select name="size">
-              <option>Standard 4"</option>
-              <option>Super 6"</option>
-              <option>Jumbo 10"</option>
-            </select>
-          </label>
-          <label>Qty <input name="qty" type="number" min="1" value="1" required /></label>
-        </div>
-        <div class="row">
-          <label>Due date <input name="due" type="date" /></label>
-          <label>Approved rush, days off the lead time <input name="rushDays" type="number" min="0" value="0" /></label>
-        </div>
-        <div class="row">
-          <label>Selling price <input name="price" type="number" min="0" step="0.01" /></label>
-          <label>Material <input name="material" type="number" min="0" step="0.01" /></label>
-        </div>
-        <div class="row">
-          <label>Paint labor <input name="labor" type="number" min="0" step="0.01" /></label>
-          <label>Other cost <input name="other" type="number" min="0" step="0.01" /></label>
-        </div>
-        <div class="row">
-          <label>Amount paid <input name="paid" type="number" min="0" step="0.01" value="0" /></label>
-          <label>Balance <input name="balance" type="number" min="0" step="0.01" value="0" /></label>
-        </div>
-        <div class="row">
-          <label>Painter
-            <select name="painter">
-              <option value="remote">Remote regular</option>
-              <option value="local">Local rush</option>
-            </select>
-          </label>
-          <label>Payment
-            <select name="status">
-              <option>Pending</option>
-              <option>Completed</option>
-              <option>Refunded</option>
-            </select>
-          </label>
-          <label>Note <input name="note" /></label>
-        </div>
-        <div id="figure-stages"></div>
-        <div class="tools" style="margin-top: 1rem;">
-          <button type="submit">Save</button>
-          <button class="ghost" type="button" id="close-editor">Cancel</button>
-          <button class="warn" type="button" id="delete-order" hidden>Delete</button>
-        </div>
-      </form>
-    </dialog>
+    <script>
+      // ---- Shop settings: edit these lines to change what customers see. ----
+      const SIZES = [
+        { id: "4", value: 'Standard 4"', name: "Classic · 4-inch", sub: "A compact collectible for desks and shelves.", price: 899, image: "/images/figure-classic.jpg" },
+        { id: "6", value: 'Super 6"', name: "Super · 6-inch", sub: "More room for recognizable details.", price: 1799, image: "/images/figure-super.jpg" },
+        { id: "10", value: 'Jumbo 10"', name: "Jumbo · 10-inch", sub: "The display piece. Takes longer to print.", price: 6499, image: "/images/figure-jumbo.jpg" },
+      ];
+      const COLORS = [
+        { name: "Plum", image: "/order/boxes/plum.jpg" },
+        { name: "Blush Pink", image: "/order/boxes/blush.jpg" },
+        { name: "Sunset Orange", image: "/order/boxes/sunset.jpg" },
+        { name: "Midnight Black", image: "/order/boxes/midnight.jpg" },
+        { name: "Royal Blue", image: "/order/boxes/royal.jpg" },
+        { name: "Burgundy", image: "/order/boxes/burgundy.jpg" },
+      ];
+      const CUSTOM = "Custom design / color";
+      const FACEBOOK_MESSENGER = "https://m.me/Haxworks3D";
+      // Where customers send payment. Add your own, for example:
+      //   { method: "GCash", details: "Haxworks · 09XX XXX XXXX" }
+      // Leave the list empty to tell customers "we'll message you the payment details".
+      const PAYMENT_ACCOUNTS = [];
+      // -----------------------------------------------------------------------
 
-    <dialog id="calendar">
-      <div class="cal-head">
-        <button class="ghost" id="prev-month" type="button">Back</button>
-        <strong id="month-label"></strong>
-        <button class="ghost" id="next-month" type="button">Next</button>
-      </div>
-      <div class="grid" id="cal-grid"></div>
-      <div id="day-detail" class="note">Pick a date. Open or Full on the calendar is for one 4-inch.</div>
-      <button class="ghost" id="export-cal" type="button" style="margin-top: 0.8rem;">Download calendar image</button>
-      <button class="ghost" id="close-cal" type="button" style="margin-top: 0.8rem;">Close</button>
-    </dialog>
+      const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { maximumFractionDigits: 2 });
+      const $ = (id) => document.getElementById(id);
+      const state = { size: null, color: null };
+      const openedAt = Date.now();
 
-    <button class="ask" id="open-chat" type="button" aria-label="Ask the shop">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 6.5h14v9H8l-3 2.5v-2.5H5v-9Z"/></svg>
-    </button>
-    <dialog id="chat">
-      <div class="chat-head">
-        <strong>Shop desk</strong>
-        <button class="ghost" id="close-chat" type="button">Close</button>
-      </div>
-      <div id="chat-log"></div>
-      <form id="chat-form">
-        <input name="text" placeholder="Ask about a date or a size" autocomplete="off" />
-        <button type="submit">Send</button>
-      </form>
-    </dialog>
-
-    <script type="module">
-      import { acceptOrder, dayActivity, earliestDate, formatDay, hoursFor, optimizeProductionSchedule, painterOf, parseSize, schedule, startOfDay } from "./logic.js";
-
-      const HOURS = 8;
-      const WORKDAYS = [1, 2, 3, 4, 5];
-      const money = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
-      const SEED = [];
-
-      let sortKey = "due";
-      let sortDir = 1;
-
-      function sortValue(order, key) {
-        if (key === "name") return String(order.name || "").toLowerCase();
-        if (key === "status") return orderStage(order).toLowerCase();
-        if (key === "size") return parseSize(order.size) || 0;
-        if (key === "qty" || key === "paid" || key === "balance") return Number(order[key]) || 0;
-        if (key === "due") return order.due || "9999-99-99";
-        return "";
+      $("sizes").innerHTML = SIZES.map((s) => `
+        <label class="card"><input type="radio" name="size" value="${s.id}" />
+          <img src="${s.image}" alt="" loading="lazy" />
+          <span><strong>${s.name}</strong><span class="sub">${s.sub}</span></span>
+          <span class="price">${peso(s.price)}</span>
+        </label>`).join("");
+      $("colors").innerHTML = COLORS.map((c) => `
+        <label class="swatch"><input type="radio" name="color" value="${c.name}" /><img src="${c.image}" alt="${c.name} box" loading="lazy" /><span class="cname">${c.name}</span></label>`).join("") +
+        `<label class="swatch"><input type="radio" name="color" value="${CUSTOM}" /><span class="dot custom"></span><span class="cname">${CUSTOM}</span></label>`;
+      $("qty").innerHTML = Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+      $("customFb").href = FACEBOOK_MESSENGER;
+      $("due").min = new Date().toISOString().slice(0, 10);
+      if (PAYMENT_ACCOUNTS.length) {
+        $("method").innerHTML = PAYMENT_ACCOUNTS.map((a) => `<option>${a.method}</option>`).join("");
+        $("methodWrap").style.display = "block";
       }
-      function visibleOrders() {
-        const query = document.querySelector("#filter-q").value.trim().toLowerCase();
-        const size = document.querySelector("#filter-size").value;
-        const status = document.querySelector("#filter-status").value;
-        return orders
-          .filter((order) => {
-            if (size && order.size !== size) return false;
-            if (status === "@open") { if (["Completed", "Cancelled"].includes(group(orderStage(order)))) return false; }
-            else if (status === "@done") { if (group(orderStage(order)) !== "Completed") return false; }
-            else if (status && group(orderStage(order)) !== status) return false;
-            if (query && !`${order.name} ${order.note || ""}`.toLowerCase().includes(query)) return false;
-            return true;
-          })
-          .sort((a, b) => {
-            const left = sortValue(a, sortKey);
-            const right = sortValue(b, sortKey);
-            if (left < right) return -sortDir;
-            if (left > right) return sortDir;
-            return String(a.name).localeCompare(String(b.name));
-          });
-      }
-      let editing = null;
-      let shown = startOfDay(new Date());
-      let selected = null;
 
-      function load() {
+      function money() {
+        const size = SIZES.find((s) => s.id === state.size);
+        const qty = Number($("qty").value) || 1;
+        const total = size ? size.price * qty : 0;
+        const mode = document.querySelector("input[name=pay]:checked").value;
+        const dp = Math.ceil(total / 2);
+        const now = mode === "dp" ? dp : Math.max(0, Number($("customAmt").value) || 0);
+        return { size, qty, total, dp, now, balance: Math.max(0, total - now), mode };
+      }
+      function refresh() {
+        const m = money();
+        $("sSize").textContent = m.size ? m.size.name : "—";
+        $("sColor").textContent = state.color || "—";
+        $("sQty").textContent = m.qty;
+        $("sTotal").textContent = m.size ? peso(m.total) : "—";
+        $("dpAmt").textContent = m.size ? peso(m.dp) : "";
+        $("sNow").textContent = m.size ? peso(m.now) : "—";
+        $("sBal").textContent = m.size ? peso(m.balance) : "—";
+        $("customNote").classList.toggle("on", state.color === CUSTOM);
+      }
+      document.addEventListener("change", (e) => {
+        if (e.target.name === "size") state.size = e.target.value;
+        if (e.target.name === "color") state.color = e.target.value;
+        refresh();
+      });
+      document.addEventListener("input", refresh);
+      refresh();
+
+      $("order").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const m = money();
+        const fail = (text) => { $("err").textContent = text; };
+        fail("");
+        if (!m.size) return fail("Please choose a size.");
+        if (!state.color) return fail("Please choose a box color (or Custom design / color).");
+        if (!$("name").value.trim()) return fail("Please enter your name.");
+        if (!$("contact").value.trim()) return fail("Please enter your Facebook name or mobile number.");
+        if (m.mode === "custom" && !(m.now > 0)) return fail("Please type the amount you're paying now.");
+        const button = $("submit");
+        button.disabled = true;
+        button.textContent = "Placing order…";
         try {
-          const saved = JSON.parse(localStorage.getItem("hax-orders") || "null");
-          if (Array.isArray(saved) && saved.length) return saved;
-        } catch {}
-        return SEED;
-      }
-      let orders = load().map(withFigures);
-      save();
-      function save() {
-        localStorage.setItem("hax-orders", JSON.stringify(orders));
-      }
-      function done(status) {
-        return ["completed", "done", "shipped", "cancelled", "canceled"].includes(String(status || "").trim().toLowerCase());
-      }
-      function withFigures(order) {
-        const qty = Number(order.qty) || 1;
-        const existing = Array.isArray(order.figures) ? order.figures : [];
-        const figures = [];
-        for (let index = 0; index < qty; index += 1) {
-          const current = existing[index];
-          figures.push(current && current.stage
-            ? { stage: "Pending", printStarted: "", printFinished: "", shipOut: "", expectedArrival: "", actualArrival: "", paintStarted: "", paintFinished: "", ...current }
-            : { stage: done(order.status) ? "Completed" : "Pending", printStarted: "", printFinished: "", shipOut: "", expectedArrival: "", actualArrival: "", paintStarted: "", paintFinished: "" });
-        }
-        return { ...order, painter: painterOf(order), figures };
-      }
-      function orderStage(order) {
-        const stages = withFigures(order).figures.map((figure) => figure.stage);
-        if (stages.every((stage) => stage === "Completed")) return "Completed";
-        if (stages.some((stage) => stage === "Painting")) return "Painting";
-        if (stages.some((stage) => stage === "Received")) return "Received";
-        if (stages.some((stage) => stage === "Shipped")) return "Shipped";
-        if (stages.some((stage) => stage === "Ready for Ship-out")) return "Ready for Ship-out";
-        if (stages.some((stage) => stage === "Ready for Painting")) return "Ready for Painting";
-        if (stages.some((stage) => stage === "Printing")) return "Printing";
-        if (stages.some((stage) => stage === "Shipping")) return "Shipping";
-        if (stages.some((stage) => stage === "On Hold")) return "On Hold";
-        if (stages.every((stage) => stage === "Cancelled")) return "Cancelled";
-        return "Pending";
-      }
-      // Simple 5-step view of the detailed internal stages.
-      function group(stage) {
-        if (stage === "Pending") return "Designing";
-        if (["Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting"].includes(stage)) return "Painting";
-        return stage;
-      }
-      function nowStamp() {
-        const date = new Date();
-        const pad = (value) => String(value).padStart(2, "0");
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-      }
-      function moveFigure(figure, stage) {
-        const next = { ...figure, stage };
-        const now = nowStamp();
-        if (stage === "Pending") return { ...next, printStarted: "", printFinished: "", paintStarted: "", paintFinished: "" };
-        if (stage === "Printing") return { ...next, printStarted: figure.printStarted || now, printFinished: "" };
-        if (stage === "Ready for Ship-out") return { ...next, printFinished: figure.stage === "Shipped" ? "" : (figure.printFinished || now), shipOut: "", expectedArrival: "", actualArrival: "" };
-        if (stage === "Shipped") {
-          const shipOut = figure.shipOut || now;
-          const base = parseISO(String(shipOut).slice(0, 10)) || new Date();
-          const arrival = new Date(base.getFullYear(), base.getMonth(), base.getDate() + shipDays());
-          return { ...next, printFinished: figure.printFinished || now, shipOut, expectedArrival: figure.expectedArrival || iso(arrival), actualArrival: "" };
-        }
-        if (stage === "Received") {
-          if (figure.stage === "Painting") return { ...next, paintStarted: "", actualArrival: figure.actualArrival };
-          return { ...next, actualArrival: now };
-        }
-        if (stage === "Ready for Painting") return { ...next, printStarted: figure.printStarted || now, printFinished: figure.stage === "Painting" ? "" : (figure.printFinished || now), paintStarted: "" };
-        if (stage === "Painting") return { ...next, paintStarted: figure.stage === "Completed" ? figure.paintStarted : figure.paintStarted || now, paintFinished: "" };
-        if (stage === "Shipping") return { ...next, printFinished: figure.printFinished || now, paintFinished: figure.paintFinished || now };
-        if (stage === "Completed") return { ...next, paintFinished: figure.paintFinished || now };
-        return next;
-      }
-      function reworkFigure(figure, kind, painter) {
-        const history = [...(figure.history || []), { stage: figure.stage, printStarted: figure.printStarted, printFinished: figure.printFinished, paintStarted: figure.paintStarted, paintFinished: figure.paintFinished, shipOut: figure.shipOut, at: nowStamp() }];
-        if (kind === "reprint") {
-          return { ...figure, history, stage: "Pending", rework: "Reprint required", printStarted: "", printFinished: "", shipOut: "", expectedArrival: "", actualArrival: "", paintStarted: "", paintFinished: "" };
-        }
-        return { ...figure, history, stage: painter === "remote" && figure.actualArrival ? "Received" : "Ready for Painting", rework: "Repaint required", paintStarted: "", paintFinished: "" };
-      }
-      function settle(order) {
-        return { ...order, status: "Completed", paid: Number(order.paid || 0) + Number(order.balance || 0), balance: 0 };
-      }
-      function parseISO(value) {
-        if (!value) return null;
-        const [year, month, day] = String(value).split("-").map(Number);
-        if (!year || !month || !day) return null;
-        return new Date(year, month - 1, day);
-      }
-      function iso(date) {
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${date.getFullYear()}-${month}-${day}`;
-      }
-      function shipDays() {
-        const saved = Number(localStorage.getItem("hax-ship-days"));
-        return Number.isFinite(saved) && saved >= 0 ? saved : 1;
-      }
-      let closures = [];
-      let shipments = [];
-      let moneyRange = "all";
-      function loadJson(key) {
-        try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
-      }
-      function loadExtra() {
-        closures = loadJson("hax-closures");
-        shipments = loadJson("hax-shipments");
-      }
-      function saveExtra() {
-        localStorage.setItem("hax-closures", JSON.stringify(closures));
-        localStorage.setItem("hax-shipments", JSON.stringify(shipments));
-      }
-      function storedNumber(key, fallback) {
-        const value = Number(localStorage.getItem(key));
-        return Number.isFinite(value) && value > 0 ? value : fallback;
-      }
-      loadExtra();
-      function shop() {
-        return {
-          today: new Date(),
-          hoursPerDay: HOURS,
-          workdays: WORKDAYS,
-          shipDays: shipDays(),
-          printPoints: storedNumber("hax-print-points", 2),
-          paintPoints: storedNumber("hax-paint-points", 3),
-          closedPrint: closures.filter((item) => item.type === "print").map((item) => item.date),
-          closedPaint: closures.filter((item) => item.type === "paint").map((item) => item.date),
-          closedShop: closures.filter((item) => item.type === "shop").map((item) => item.date),
-        };
-      }
-      function capacityOrders(skipId) {
-        const busy = (order) => withFigures(order).figures.some((figure) => ["Printing", "Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting", "Shipping"].includes(figure.stage));
-        return orders
-          .filter((order) => order.id !== skipId && (busy(order) || (!done(order.status) && order.due)))
-          .map((order) => ({
-            id: order.id,
-            name: order.name,
-            size: parseSize(order.size),
-            qty: Number(order.qty) || 1,
-            due: order.due ? parseISO(order.due) : null,
-            status: order.status,
-            painter: painterOf(order),
-            figures: withFigures(order).figures,
-          }));
-      }
-      const STAGE_LABEL = {
-        Designing: "✏️ Designing",
-        Printing: "🖨️ Printing",
-        Painting: "🎨 Painting",
-        Shipping: "🚚 Shipping",
-        Completed: "✅ Completed",
-        "On Hold": "⏸️ On hold",
-        Cancelled: "✖ Cancelled",
-      };
-      const STAGE_CLASS = {
-        Designing: "s-pending", Printing: "s-printing", Painting: "s-painting", Shipping: "s-shipping", Completed: "s-done",
-      };
-      // What each dropdown choice stores (Designing is the "Pending" stage).
-      const STAGE_VALUE = { Designing: "Pending" };
-      const STEPS = ["Designing", "Printing", "Painting", "Shipping", "Completed"];
-      function stageCell(order) {
-        const figures = withFigures(order).figures.map((figure, index) => {
-          const current = group(figure.stage);
-          const options = STEPS.includes(current) ? STEPS : [...STEPS, current];
-          const select = `<select class="status ${STAGE_CLASS[current] || "s-pending"}" data-status data-figure="${index}" aria-label="Status">${options.map((step) => `<option value="${STAGE_VALUE[step] || step}"${step === current ? " selected" : ""}>${STEPS.includes(step) ? `${STEPS.indexOf(step) + 1}. ` : ""}${STAGE_LABEL[step] || escapeHtml(step)}</option>`).join("")}</select>`;
-          const name = order.qty > 1 ? `<span class="fig-name">Figure ${index + 1}</span>` : "";
-          const paid = index === 0 && !done(order.status) ? `<button class="mark-done" type="button" data-complete>Mark paid in full</button>` : "";
-          return `<div class="fig">${name}${select}${paid}</div>`;
-        }).join("");
-        return figures;
-      }
-      function shipNote(order, figures) {
-        const plan = figures[0];
-        const stored = withFigures(order).figures[0] || {};
-        const day = (value) => {
-          if (!value) return "—";
-          const date = value instanceof Date ? value : parseISO(String(value).slice(0, 10));
-          return date ? formatDay(date) : "—";
-        };
-        return painterOf(order) === "local"
-          ? `<div class="tags"><span class="tag local">⚡ Local rush</span></div>`
-          : `<div class="tags"><span class="tag remote">🚚 Remote painter</span></div>`;
-      }
-      function render() {
-        const completed = orders.filter((order) => done(order.status));
-        const pending = orders.filter((order) => !done(order.status));
-        const paid = orders.reduce((sum, order) => sum + Number(order.paid || 0), 0);
-        const balance = orders.reduce((sum, order) => sum + Number(order.balance || 0), 0);
-        document.querySelector("#stats").innerHTML = [
-          ["Orders", orders.length],
-          ["Completed", completed.length],
-          ["In progress", pending.length],
-          ["Amount paid", money.format(paid)],
-          ["Balance", money.format(balance)],
-        ].map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
-        const placed = optimizeProductionSchedule(capacityOrders(), shop()).placed;
-        const risk = new Set(placed.filter((figure) => !figure.ok && figure.stage !== "Completed").map((figure) => figure.orderId));
-        const count = (step) => orders.filter((order) => group(orderStage(order)) === step).length;
-        const production = [
-          ["✏️ Designing", count("Designing")],
-          ["🖨️ Printing", count("Printing")],
-          ["🎨 Painting", count("Painting")],
-          ["🚚 Shipping", count("Shipping")],
-          ["✅ Completed", count("Completed")],
-          ["⚠ At risk", orders.filter((order) => risk.has(order.id) && orderStage(order) !== "Completed").length],
-        ];
-        document.querySelector("#production").innerHTML = production.map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
-        const missing = pending.filter((order) => !order.due);
-        document.querySelector("#undated").textContent = missing.length
-          ? `${missing.length} pending order${missing.length === 1 ? "" : "s"} have no deadline. They are not on the calendar yet.`
-          : "";
-        const rows = visibleOrders();
-        document.querySelector("#rows").innerHTML = rows.length
-          ? rows.map((order) => `<tr data-id="${order.id}">
-            <td>${escapeHtml(order.name)}${shipNote(order, placed.filter((figure) => figure.orderId === order.id))}</td>
-            <td>${escapeHtml(order.size)}</td>
-            <td>${order.qty}</td>
-            <td>${order.due ? formatDay(parseISO(order.due)) : "—"}${order.rushDays ? ` <span class="note">rush ${order.rushDays}d</span>` : ""}</td>
-            <td>${money.format(Number(order.paid || 0))}</td>
-            <td>${money.format(Number(order.balance || 0))}</td>
-            <td>${stageCell(order)}</td>
-            <td class="note">${escapeHtml(order.note || "")}</td>
-          </tr>`).join("")
-          : `<tr><td colspan="8" class="note">No orders match.</td></tr>`;
-        document.querySelectorAll("[data-sort]").forEach((button) => {
-          const on = button.dataset.sort === sortKey;
-          button.classList.toggle("on", on);
-          button.textContent = on ? `${button.dataset.label} ${sortDir > 0 ? "↑" : "↓"}` : button.dataset.label;
-        });
-        paintDesk(placed);
-      }
-      function escapeHtml(value) {
-        return String(value ?? "").replace(/[&<>"']/g, (char) => {
-          if (char === "&") return "&" + "amp;";
-          if (char === "<") return "&" + "lt;";
-          if (char === ">") return "&" + "gt;";
-          if (char === '"') return "&" + "quot;";
-          return "&" + "#39;";
-        });
-      }
-
-      function moneyOrders() {
-        const from = document.querySelector("#money-from").value;
-        const to = document.querySelector("#money-to").value;
-        const today = iso(startOfDay(new Date()));
-        return orders.filter((order) => {
-          if (from || to) return order.due && (!from || order.due >= from) && (!to || order.due <= to);
-          if (moneyRange === "all") return true;
-          if (!order.due) return false;
-          if (moneyRange === "today") return order.due === today;
-          if (moneyRange === "month") return order.due.slice(0, 7) === today.slice(0, 7);
-          const date = parseISO(order.due);
-          const now = new Date();
-          const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-          const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-          return date >= start && date <= end;
-        });
-      }
-      function splitShip(shipment, orderId, amount) {
-        const ids = [...new Set((shipment.figures || []).map((figure) => figure.orderId))];
-        return ids.includes(orderId) && ids.length ? (Number(amount) || 0) / ids.length : 0;
-      }
-      function moneyOf(order) {
-        const price = order.price === "" || order.price == null ? Number(order.paid || 0) + Number(order.balance || 0) : Number(order.price);
-        const material = Number(order.material || 0);
-        const labor = Number(order.labor || 0);
-        const other = Number(order.other || 0);
-        const mine = shipments.filter((shipment) => (shipment.figures || []).some((figure) => figure.orderId === order.id));
-        const outbound = mine.reduce((sum, shipment) => sum + splitShip(shipment, order.id, shipment.cost), 0);
-        const back = mine.reduce((sum, shipment) => sum + splitShip(shipment, order.id, shipment.returnCost), 0);
-        const refunded = order.status === "Refunded";
-        const costs = material + labor + other + outbound + back;
-        return { price, material, labor, other, outbound, back, costs, profit: price - costs, paid: refunded ? 0 : Number(order.paid || 0), balance: refunded ? 0 : Number(order.balance || 0) };
-      }
-      function payState(order) {
-        if (order.status === "Refunded") return "Refunded";
-        const paid = Number(order.paid || 0);
-        const balance = Number(order.balance || 0);
-        if (paid > 0 && balance <= 0) return "Fully Paid";
-        if (paid > 0 && balance > 0) return "Partially Paid";
-        return "Unpaid";
-      }
-      function setFigureStage(orderId, index, stage) {
-        orders = orders.map((order) => {
-          if (order.id !== orderId) return order;
-          const figures = withFigures(order).figures.map((figure, figureIndex) => (figureIndex === index ? moveFigure(figure, stage) : figure));
-          return { ...order, figures };
-        });
-      }
-      function paintDesk(placed) {
-        const todayKey = iso(startOfDay(new Date()));
-        const tasks = [];
-        for (const order of orders) {
-          withFigures(order).figures.forEach((figure, index) => {
-            const plan = placed.find((item) => item.id === `${order.id}:${index}`);
-            const name = `${order.name}${Number(order.qty) > 1 ? `, figure ${index + 1}` : ""}`;
-            const printDays = plan?.printDays || [];
-            const printToday = printDays.some((day) => iso(day) === todayKey);
-            const lastPrint = printDays.length ? iso(printDays[printDays.length - 1]) : "";
-            if (figure.stage === "Pending" && printToday) tasks.push({ text: `Start printing ${name}.`, orderId: order.id, index, stage: "Printing" });
-            if (figure.stage === "Printing" && parseSize(order.size) === 10 && printToday && lastPrint !== todayKey) tasks.push({ text: `Continue the 10-inch print for ${name}.`, orderId: order.id, index, stage: "" });
-            if (figure.stage === "Printing" && (parseSize(order.size) !== 10 || !printToday || lastPrint === todayKey)) {
-              tasks.push({ text: `Finish printing ${name}.`, orderId: order.id, index, stage: painterOf(order) === "remote" ? "Ready for Ship-out" : "Ready for Painting" });
-            }
-            if (figure.stage === "Ready for Painting" || figure.stage === "Received") tasks.push({ text: `Prepare ${name} for painting.`, orderId: order.id, index, stage: "Painting" });
-            if (figure.stage === "Ready for Ship-out") tasks.push({ text: `Pack and ship ${name} to the remote painter.`, orderId: order.id, index, stage: "Shipped" });
-            if (figure.stage === "Shipped") tasks.push({ text: `Check ${name}. Mark received only if the painter has it.`, orderId: order.id, index, stage: "Received" });
-            if (figure.stage === "Painting") tasks.push({ text: `Painting finished on ${name}? Mark it ready for shipping to the customer.`, orderId: order.id, index, stage: "Shipping" });
-            if (figure.stage === "Shipping") tasks.push({ text: `Confirm ${name} was delivered to the customer.`, orderId: order.id, index, stage: "Completed" });
-          });
-        }
-        document.querySelector("#tasks").innerHTML = tasks.length
-          ? tasks.map((task) => `<li>${escapeHtml(task.text)}${task.stage ? `<button class="tiny" type="button" data-task="${task.stage}" data-order="${task.orderId}" data-figure="${task.index}">Do this</button>` : ""}</li>`).join("")
-          : `<li class="note">Nothing queued for today.</li>`;
-        const horizon = new Date(startOfDay(new Date()).getTime());
-        horizon.setDate(horizon.getDate() + 14);
-        const atRisk = new Map();
-        for (const figure of placed.filter((item) => !item.ok && item.stage !== "Completed")) {
-          if (!atRisk.has(figure.orderId)) atRisk.set(figure.orderId, figure);
-        }
-        const soon = orders
-          .filter((order) => order.due && !["Completed", "Cancelled"].includes(group(orderStage(order))))
-          .filter((order) => parseISO(order.due) <= horizon)
-          .sort((a, b) => String(a.due).localeCompare(String(b.due)));
-        const dayMs = 24 * 60 * 60 * 1000;
-        document.querySelector("#risks").innerHTML = soon.length
-          ? soon.map((order) => {
-              const left = Math.round((parseISO(order.due) - startOfDay(new Date())) / dayMs);
-              const when = left < 0 ? `${-left} day${left === -1 ? "" : "s"} overdue` : left === 0 ? "due today" : `due in ${left} day${left === 1 ? "" : "s"}`;
-              const risk = atRisk.get(order.id);
-              const note = !risk
-                ? "On track."
-                : !risk.finish
-                  ? "No open print and paint slot before the due date."
-                  : `Will finish ${formatDay(risk.finish)}, after the due date.`;
-              return `<li><strong>${escapeHtml(order.name)}</strong> · ${escapeHtml(STAGE_LABEL[group(orderStage(order))] || group(orderStage(order)))}<br><span class="note">Due ${formatDay(parseISO(order.due))} (${when}). ${risk ? "⚠ " : ""}${note}</span></li>`;
-            }).join("")
-          : `<li class="note">Nothing is due in the next 2 weeks.</li>`;
-        const chosen = moneyOrders();
-        const totals = chosen.reduce((sum, order) => {
-          const moneyRow = moneyOf(order);
-          sum.revenue += moneyRow.price;
-          sum.paid += moneyRow.paid;
-          sum.balance += moneyRow.balance;
-          sum.costs += moneyRow.costs;
-          sum.profit += moneyRow.profit;
-          sum.material += moneyRow.material;
-          sum.labor += moneyRow.labor;
-          sum.other += moneyRow.other;
-          sum.outbound += moneyRow.outbound;
-          sum.back += moneyRow.back;
-          return sum;
-        }, { revenue: 0, paid: 0, balance: 0, costs: 0, profit: 0, material: 0, labor: 0, other: 0, outbound: 0, back: 0 });
-        document.querySelector("#money-stats").innerHTML = [
-          ["Revenue", totals.revenue],
-          ["Received", totals.paid],
-          ["Outstanding", totals.balance],
-          ["Expenses", totals.costs],
-          ["Profit", totals.profit],
-        ].map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${money.format(value)}</strong></div>`).join("");
-        document.querySelector("#money-breakdown").textContent = `Material ${money.format(totals.material)} · Paint labor ${money.format(totals.labor)} · Other ${money.format(totals.other)} · Ship out ${money.format(totals.outbound)} · Return ${money.format(totals.back)}. Balances are not counted as received. ${chosen.map((order) => `${order.name} ${payState(order)}`).join(" · ")}`;
-        const labels = { print: "Printer maintenance", paint: "Painter off", shop: "Shop closed" };
-        document.querySelector("#closures").innerHTML = closures.length
-          ? closures.map((item, index) => `<li>${escapeHtml(item.date)} · ${labels[item.type] || item.type} <button class="tiny" type="button" data-close="${index}">Remove</button></li>`).join("")
-          : `<li class="note">No closed days.</li>`;
-      }
-
-      const editor = document.querySelector("#editor");
-      const form = document.querySelector("#order-form");
-      function openEditor(order) {
-        editing = order;
-        form.reset();
-        document.querySelector("#form-title").textContent = order ? "Edit order" : "Add order";
-        document.querySelector("#delete-order").hidden = !order;
-        const stages = document.querySelector("#figure-stages");
-        stages.innerHTML = order
-          ? withFigures(order).figures.map((figure, index) => `<label>Figure ${index + 1} <select data-fix-stage="${index}">${["Pending", "Printing", "Ready for Ship-out", "Shipped", "Received", "Ready for Painting", "Painting", "Shipping", "Completed", "On Hold", "Cancelled"].map((stage) => `<option${stage === figure.stage ? " selected" : ""}>${stage}</option>`).join("")}</select></label>`).join("")
-          : "";
-        if (order) {
-          for (const key of ["name", "size", "qty", "due", "rushDays", "paid", "balance", "status", "note", "painter", "price", "material", "labor", "other"]) {
-            form.elements[key].value = order[key] ?? "";
-          }
-        }
-        editor.showModal();
-      }
-      document.querySelector("#open-add").onclick = () => openEditor(null);
-      document.querySelector("#filter-q").oninput = () => render();
-      document.querySelector("#filter-size").onchange = () => render();
-      document.querySelector("#filter-status").onchange = () => render();
-      const shipInput = document.querySelector("#ship-days");
-      shipInput.value = String(shipDays());
-      shipInput.onchange = () => {
-        localStorage.setItem("hax-ship-days", String(Math.max(0, Number(shipInput.value) || 0)));
-        render();
-        drawCalendar();
-      };
-      document.querySelector(".sheet thead").onclick = (event) => {
-        const button = event.target.closest("[data-sort]");
-        if (!button) return;
-        if (sortKey === button.dataset.sort) sortDir *= -1;
-        else {
-          sortKey = button.dataset.sort;
-          sortDir = 1;
-        }
-        render();
-      };
-      document.querySelector("#close-editor").onclick = () => editor.close();
-      document.querySelector("#rows").onchange = (event) => {
-        const row = event.target.closest("tr");
-        const figureIndex = Number(event.target.dataset.figure);
-        if (!row?.dataset.id) return;
-        const status = event.target.closest("[data-status]");
-        const redo = event.target.closest("[data-redo]");
-        if (!status && !redo) return;
-        if (redo && !redo.value) return;
-        orders = orders.map((order) => {
-          if (order.id !== row.dataset.id) return order;
-          const figures = withFigures(order).figures.map((figure, i) => {
-            if (i !== figureIndex) return figure;
-            if (status) return { ...moveFigure(figure, status.value), rework: "" };
-            return reworkFigure(figure, redo.value, painterOf(order));
-          });
-          return { ...order, figures };
-        });
-        save();
-        render();
-        drawCalendar();
-      };
-      document.querySelector("#rows").onclick = (event) => {
-        if (event.target.closest("select")) return;
-        const row = event.target.closest("tr");
-        if (!row?.dataset.id) return;
-        if (event.target.closest("[data-complete]")) {
-          orders = orders.map((order) => (order.id === row.dataset.id && !done(order.status) ? settle(order) : order));
-          save();
-          render();
-          drawCalendar();
-          return;
-        }
-        const stageButton = event.target.closest("[data-stage], [data-undo]");
-        if (stageButton) {
-          const index = Number(stageButton.dataset.figure);
-          const stage = stageButton.dataset.stage || stageButton.dataset.undo;
-          orders = orders.map((order) => {
-            if (order.id !== row.dataset.id) return order;
-            const figures = withFigures(order).figures.map((figure, figureIndex) => (figureIndex === index ? moveFigure(figure, stage) : figure));
-            return { ...order, figures };
-          });
-          save();
-          render();
-          drawCalendar();
-          return;
-        }
-        const reworkButton = event.target.closest("[data-rework]");
-        if (reworkButton) {
-          const index = Number(reworkButton.dataset.figure);
-          orders = orders.map((order) => {
-            if (order.id !== row.dataset.id) return order;
-            const figures = withFigures(order).figures.map((figure, figureIndex) => (figureIndex === index ? reworkFigure(figure, reworkButton.dataset.rework, painterOf(order)) : figure));
-            return { ...order, figures };
-          });
-          save();
-          render();
-          drawCalendar();
-          return;
-        }
-        openEditor(orders.find((order) => order.id === row.dataset.id));
-      };
-      form.onsubmit = (event) => {
-        event.preventDefault();
-        const data = new FormData(form);
-        const next = {
-          id: editing?.id || String(Date.now()),
-          name: String(data.get("name")).trim(),
-          size: data.get("size"),
-          qty: Number(data.get("qty")) || 1,
-          due: data.get("due"),
-          rushDays: Number(data.get("rushDays")) || 0,
-          paid: Number(data.get("paid")) || 0,
-          balance: Number(data.get("balance")) || 0,
-          status: data.get("status"),
-          note: String(data.get("note") || "").trim(),
-          painter: data.get("painter") === "local" ? "local" : "remote",
-          price: data.get("price") === "" ? "" : Number(data.get("price")),
-          material: data.get("material") === "" ? "" : Number(data.get("material")),
-          labor: data.get("labor") === "" ? "" : Number(data.get("labor")),
-          other: data.get("other") === "" ? "" : Number(data.get("other")),
-        };
-        let figures = withFigures({ ...(editing || {}), qty: next.qty, status: editing?.status || "Pending" }).figures;
-        document.querySelectorAll("[data-fix-stage]").forEach((select) => {
-          const index = Number(select.dataset.fixStage);
-          if (figures[index] && figures[index].stage !== select.value) figures[index] = moveFigure(figures[index], select.value);
-        });
-        next.figures = figures;
-        const wasDone = editing ? done(editing.status) : false;
-        const nextOrder = done(next.status) && !wasDone ? settle(next) : next;
-        orders = editing ? orders.map((order) => (order.id === editing.id ? nextOrder : order)) : [nextOrder, ...orders];
-        save();
-        editor.close();
-        render();
-        drawCalendar();
-      };
-      document.querySelector("#delete-order").onclick = () => {
-        orders = orders.filter((order) => order.id !== editing.id);
-        save();
-        editor.close();
-        render();
-        drawCalendar();
-      };
-
-      const calendar = document.querySelector("#calendar");
-      document.querySelector("#open-cal").onclick = () => {
-        shown = startOfDay(new Date());
-        selected = iso(shown);
-        drawCalendar();
-        calendar.showModal();
-      };
-      document.querySelector("#close-cal").onclick = () => calendar.close();
-
-      // ---- Export the month on screen as a printable planner image (PNG). ----
-      function exportCalendar() {
-        const year = shown.getFullYear();
-        const month = shown.getMonth();
-        const days = new Date(year, month + 1, 0).getDate();
-        const offset = (new Date(year, month, 1).getDay() + 6) % 7; // week starts on Monday
-        const rowsCount = Math.ceil((offset + days) / 7);
-        const byDay = new Map();
-        for (const order of orders) {
-          if (!order.due || !order.due.startsWith(`${year}-${String(month + 1).padStart(2, "0")}-`)) continue;
-          // Due calendar: only orders still in progress (skip delivered/completed and cancelled).
-          if (["Completed", "Cancelled"].includes(orderStage(order))) continue;
-          const key = Number(order.due.slice(8, 10));
-          byDay.set(key, [...(byDay.get(key) || []), order]);
-        }
-        const num = (value) => Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
-        const pillsFor = (order) => {
-          const inches = parseSize(order.size);
-          const qty = Number(order.qty) > 1 ? `${order.qty} × ` : "";
-          const list = [{ text: `${qty}${inches ? `${inches} INCHES` : String(order.size || "").toUpperCase()} - ${String(order.name || "").toUpperCase()}`, color: "#ffe600" }];
-          const paid = Number(order.paid || 0);
-          const balance = Number(order.balance || 0);
-          if (balance <= 0 && paid > 0) list.push({ text: `FULLY PAID - ${num(paid)}`, color: "#00b050" });
-          else if (balance > 0) list.push({ text: `DP ${num(paid)}  —  BALANCE ${num(balance)}`, color: "#ff8a4c" });
-          return list;
-        };
-        const W = 2400, titleH = 470, dowH = 100, pillH = 50, gap = 12, numH = 90;
-        const rowH = [];
-        for (let r = 0; r < rowsCount; r += 1) {
-          let most = 0;
-          for (let c = 0; c < 7; c += 1) {
-            const day = r * 7 + c - offset + 1;
-            if (day >= 1 && day <= days) most = Math.max(most, (byDay.get(day) || []).reduce((sum, order) => sum + pillsFor(order).length, 0));
-          }
-          rowH.push(Math.max(250, numH + most * (pillH + gap) + 24));
-        }
-        const H = titleH + dowH + rowH.reduce((a, b) => a + b, 0);
-        const canvas = document.createElement("canvas");
-        canvas.width = W;
-        canvas.height = H;
-        const g = canvas.getContext("2d");
-        g.fillStyle = "#fff";
-        g.fillRect(0, 0, W, H);
-        const serif = '"Playfair Display","Bodoni MT","Didot","Bodoni 72",Georgia,"Times New Roman",serif';
-        const sans = '"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif';
-        g.textBaseline = "alphabetic";
-        g.fillStyle = "#4d4d4d";
-        g.font = `700 430px ${serif}`;
-        g.textAlign = "left";
-        g.fillText(new Date(year, month, 1).toLocaleDateString("en-US", { month: "long" }), 48, titleH - 55);
-        g.font = `400 110px ${serif}`;
-        g.textAlign = "right";
-        g.letterSpacing = "14px";
-        g.fillText(String(year), W - 48 + 14, titleH - 62);
-        g.letterSpacing = "0px";
-        const line = (x1, y1, x2, y2, w, color) => { g.strokeStyle = color; g.lineWidth = w; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
-        line(0, titleH - 4, W, titleH - 4, 5, "#2b2b2b");
-        const colW = W / 7;
-        g.textAlign = "center";
-        g.fillStyle = "#555";
-        g.font = `400 46px ${sans}`;
-        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach((label, c) => g.fillText(label, colW * c + colW / 2, titleH + 66));
-        line(0, titleH + dowH, W, titleH + dowH, 4, "#2b2b2b");
-        let y = titleH + dowH;
-        for (let r = 0; r < rowsCount; r += 1) {
-          for (let c = 0; c < 7; c += 1) {
-            const day = r * 7 + c - offset + 1;
-            const x = colW * c;
-            if (c > 0) line(x, y, x, y + rowH[r], 2, "#8c8c8c");
-            if (day < 1 || day > days) continue;
-            g.fillStyle = "#444";
-            g.font = `400 52px ${sans}`;
-            g.textAlign = "center";
-            g.fillText(String(day), x + colW / 2, y + 62);
-            let py = y + numH;
-            for (const order of byDay.get(day) || []) {
-              for (const pill of pillsFor(order)) {
-                let size = 30;
-                g.font = `600 ${size}px ${sans}`;
-                while (g.measureText(pill.text).width > colW - 56 && size > 14) { size -= 1; g.font = `600 ${size}px ${sans}`; }
-                const w = Math.min(colW - 24, g.measureText(pill.text).width + 44);
-                g.fillStyle = pill.color;
-                g.beginPath();
-                g.roundRect(x + (colW - w) / 2, py, w, pillH, pillH / 2);
-                g.fill();
-                g.fillStyle = "#111";
-                g.textBaseline = "middle";
-                g.fillText(pill.text, x + colW / 2, py + pillH / 2 + 2);
-                g.textBaseline = "alphabetic";
-                py += pillH + gap;
-              }
-            }
-          }
-          y += rowH[r];
-          line(0, y, W, y, 2, "#8c8c8c");
-        }
-        canvas.toBlob((blob) => {
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = `haxworks-${new Date(year, month, 1).toLocaleDateString("en-US", { month: "long" }).toLowerCase()}-${year}.png`;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          setTimeout(() => URL.revokeObjectURL(link.href), 4000);
-        }, "image/png");
-      }
-      document.querySelector("#export-cal").onclick = exportCalendar;
-      document.querySelector("#prev-month").onclick = () => {
-        shown = new Date(shown.getFullYear(), shown.getMonth() - 1, 1);
-        drawCalendar();
-      };
-      document.querySelector("#next-month").onclick = () => {
-        shown = new Date(shown.getFullYear(), shown.getMonth() + 1, 1);
-        drawCalendar();
-      };
-
-      function drawCalendar() {
-        const year = shown.getFullYear();
-        const month = shown.getMonth();
-        document.querySelector("#month-label").textContent = shown.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-        const dueMap = new Map();
-        for (const order of orders) {
-          if (!order.due || done(order.status)) continue;
-          const list = dueMap.get(order.due) || [];
-          list.push(order);
-          dueMap.set(order.due, list);
-        }
-        const first = new Date(year, month, 1);
-        const startPad = first.getDay();
-        const days = new Date(year, month + 1, 0).getDate();
-        const cells = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => `<div class="dow">${label}</div>`);
-        for (let i = 0; i < startPad; i += 1) cells.push("<div></div>");
-        const todayKey = iso(startOfDay(new Date()));
-        for (let day = 1; day <= days; day += 1) {
-          const date = new Date(year, month, day);
-          const key = iso(date);
-          const past = key < todayKey;
-          const has = dueMap.has(key);
-          let mark = "";
-          let full = false;
-          if (!past) {
-            const result = acceptOrder(capacityOrders(), { size: 4, qty: 1, deadline: date, rushDays: 0 }, shop());
-            full = !result.ok;
-            mark = full ? "Full" : "Open";
-          }
-          cells.push(`<button class="day ${has ? "has" : ""} ${full ? "full" : ""} ${selected === key ? "on" : ""}" data-date="${key}" type="button">${day}<small>${mark}</small></button>`);
-        }
-        const grid = document.querySelector("#cal-grid");
-        grid.innerHTML = cells.join("");
-        grid.onclick = (event) => {
-          const button = event.target.closest("[data-date]");
-          if (!button) return;
-          selected = button.dataset.date;
-          drawCalendar();
-        };
-        showDay();
-      }
-
-      function showDay() {
-        const box = document.querySelector("#day-detail");
-        if (!selected) return;
-        const date = parseISO(selected);
-        const due = orders.filter((order) => order.due === selected && !done(order.status));
-        const names = due.length ? due.map((order) => `${order.name} · ${order.qty} × ${order.size}`).join("<br>") : "No deadline on this day.";
-        const settings = shop();
-        const fits = [4, 6, 10].map((size) => {
-          const result = acceptOrder(capacityOrders(), { size, qty: 1, deadline: date, rushDays: 0 }, settings);
-          return `${size}" ${result.ok ? "fits" : "does not fit"}`;
-        });
-        const localFits = [4, 6, 10].map((size) => {
-          const result = acceptOrder(capacityOrders(), { size, qty: 1, deadline: date, rushDays: 0, painter: "local" }, settings);
-          return `${size}" ${result.ok ? "fits" : "does not fit"}`;
-        });
-        const activity = dayActivity(capacityOrders(), settings, date);
-        const namesFor = (list) => (list.length ? [...new Set(list.map((figure) => figure.name))].join(", ") : "None");
-        const bench = `Print ${activity.printUsed} of ${activity.printCap}${activity.paintCap ? ` · Paint ${activity.paintUsed} of ${activity.paintCap}` : " · No painting this day"}`;
-        box.innerHTML = `<strong>${formatDay(date)}</strong><br>${names}<br><span class="note">Regular, with shipping: ${fits.join(" · ")}.<br>Local rush, no shipping: ${localFits.join(" · ")}.<br>Printing: ${namesFor(activity.printing)}<br>Painting: ${namesFor(activity.painting)}<br>${bench}. Paint points stay at 3 for both painters together.</span>`;
-      }
-
-      const chatLog = [];
-      const chatBox = document.querySelector("#chat");
-      const chatList = document.querySelector("#chat-log");
-
-      function monthEnd() {
-        const today = startOfDay(new Date());
-        return new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      }
-
-      function howMany(size, deadline) {
-        const open = capacityOrders();
-        const settings = shop();
-        let count = 0;
-        for (let qty = 1; qty <= 20; qty += 1) {
-          if (!acceptOrder(open, { size, qty, deadline, rushDays: 0 }, settings).ok) break;
-          count = qty;
-        }
-        return count;
-      }
-
-      function verdict(question) {
-        const lower = String(question || "").toLowerCase();
-        const size = /jumbo|\b10\b/.test(lower) ? 10 : /super|\b6\b/.test(lower) ? 6 : /standard|\b4\b/.test(lower) ? 4 : null;
-        const names = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-        let date = null;
-        const exact = lower.match(/(\d{4})-(\d{2})-(\d{2})/);
-        if (exact) date = new Date(Number(exact[1]), Number(exact[2]) - 1, Number(exact[3]));
-        else {
-          names.forEach((name, index) => {
-            const found = lower.match(new RegExp(name.slice(0, 3) + "\\w*\\s+(\\d{1,2})"));
-            if (found) date = new Date(new Date().getFullYear(), index, Number(found[1]));
-          });
-        }
-        if (!size || !date) return "";
-        const rush = lower.match(/(\d+)\s*day/);
-        const result = acceptOrder(capacityOrders(), { size, qty: 1, deadline: date, rushDays: rush ? Number(rush[1]) : 0 }, shop());
-        const soon = earliestDate(capacityOrders(), { size, qty: 1 }, shop());
-        return `Checked one ${size}-inch for ${formatDay(result.promised)}: ${result.ok ? "Yes, it finishes " + formatDay(result.finish) : "No. Earliest open day is " + (soon ? formatDay(soon) : "unknown")}.`;
-      }
-
-      function shopFacts(question) {
-        const settings = shop();
-        const end = monthEnd();
-        const catalog = orders
-          .map((order) => `id ${order.id}: ${order.name}, ${order.qty} x ${order.size}, ${painterOf(order) === "local" ? "local rush" : "remote regular"}, due ${order.due || "none"}, stage ${orderStage(order)}, figures ${withFigures(order).figures.map((figure) => figure.stage).join("/")}, rush ${order.rushDays || 0}, paid ${order.paid || 0}, balance ${order.balance || 0}, payment ${order.status || "Pending"}${order.note ? `, note ${order.note}` : ""}`)
-          .join("; ");
-        const rows = schedule(capacityOrders(), settings);
-        const lines = rows.map((order) => {
-          const source = orders.find((item) => item.id === order.id);
-          const name = source ? source.name : "Order";
-          return `${name}: ${source ? source.qty : 1} x ${source ? source.size : "figure"}, due ${order.promised ? formatDay(order.promised) : "none"}, finishes ${order.finish ? formatDay(order.finish) : "not placed"}, ${order.stage || "Pending"}, ${order.ok ? "on time" : "at risk"}`;
-        });
-        const undated = orders
-          .filter((order) => !done(order.status) && !order.due)
-          .map((order) => `${order.name}: ${order.qty} x ${order.size}, unscheduled, no printer or paint day`);
-        const room = [4, 6, 10]
-          .map((size) => {
-            const date = earliestDate(capacityOrders(), { size, qty: 1 }, settings);
-            return `one ${size}-inch earliest ${date ? formatDay(date) : "unknown"}, ${howMany(size, end)} more fit by ${formatDay(end)}`;
-          })
-          .join(". ");
-        return [
-          `Today is ${formatDay(settings.today)}. Shipping to the remote painter takes ${settings.shipDays} day. Regular orders use that painter: print, then ship the next day, then paint on a weekday after arrival. Rush orders use the local painter and do not ship. Both painters share one paint bench of 3 points a day. Do not add those together. The calendar mark is a regular 4-inch, including shipping. The printer runs every day: two 4-inch figures, or one 6-inch. A 10-inch keeps the printer for 4 calendar days in a row. A normal 4-inch or 6-inch needs 3 days of lead time. A 10-inch needs 7. Rush only shortens that lead time. Use the Checked line if it is present.`,
-          `Sheet: ${catalog}.`,
-          lines.length ? `Open dated orders: ${lines.join("; ")}.` : "No dated pending orders.",
-          undated.length ? `No deadline yet: ${undated.join("; ")}. These are not in the calendar.` : "Every pending order has a deadline.",
-          `Room: ${room}.`,
-          verdict(question),
-        ].filter(Boolean).join("\n");
-      }
-
-      function paintChat() {
-        chatList.innerHTML = chatLog
-          .map((message) => `<div class="bubble ${message.role}">${escapeHtml(message.text)}</div>`)
-          .join("");
-        chatList.scrollTop = chatList.scrollHeight;
-      }
-
-      function ownerAskedToChange(text) {
-        return /\b(add|create|book|change|move|set|update|edit|complete|delete|remove|cancel|schedule|go ahead|do it|do that)\b/i.test(text);
-      }
-      function sizeName(value) {
-        const size = parseSize(value);
-        if (size === 10) return 'Jumbo 10"';
-        if (size === 6) return 'Super 6"';
-        if (size === 4) return 'Standard 4"';
-        return "";
-      }
-      function applyDeskChanges(changes) {
-        const notes = [];
-        for (const change of changes) {
-          const op = String(change.op || "").toLowerCase();
-          if (op === "add") {
-            const size = sizeName(change.size);
-            const name = String(change.name || "").trim();
-            if (!name || !size) {
-              notes.push("I skipped an add because the name or size was not clear.");
-              continue;
-            }
-            orders.push({
-              id: crypto.randomUUID(),
-              name,
-              size,
-              qty: Math.max(1, Number(change.qty) || 1),
-              due: /^\d{4}-\d{2}-\d{2}$/.test(change.due || "") ? change.due : "",
-              rushDays: Math.max(0, Number(change.rushDays) || 0),
-              paid: Number(change.paid) || 0,
-              balance: Number(change.balance) || 0,
-              status: "Pending",
-              note: String(change.note || ""),
-            });
-            notes.push(`Added ${name}.`);
-          } else if (op === "update" || op === "complete" || op === "delete") {
-            const index = orders.findIndex((order) => order.id === String(change.id || ""));
-            if (index < 0) {
-              notes.push("I could not find that order.");
-              continue;
-            }
-            if (op === "delete") {
-              notes.push(`Removed ${orders[index].name}.`);
-              orders.splice(index, 1);
-              continue;
-            }
-            if (op === "complete") {
-              orders[index] = settle(orders[index]);
-              notes.push(`Marked ${orders[index].name} completed.`);
-              continue;
-            }
-            const next = { ...orders[index] };
-            if (change.name) next.name = String(change.name);
-            if (change.size && sizeName(change.size)) next.size = sizeName(change.size);
-            if (change.qty != null) next.qty = Math.max(1, Number(change.qty) || 1);
-            if (change.due === "") next.due = "";
-            else if (/^\d{4}-\d{2}-\d{2}$/.test(change.due || "")) next.due = change.due;
-            if (change.rushDays != null) next.rushDays = Math.max(0, Number(change.rushDays) || 0);
-            if (change.paid != null) next.paid = Number(change.paid) || 0;
-            if (change.balance != null) next.balance = Number(change.balance) || 0;
-            if (change.status) next.status = String(change.status);
-            if (change.note != null) next.note = String(change.note);
-            orders[index] = next;
-            notes.push(`Updated ${next.name}.`);
-          }
-        }
-        if (notes.length) {
-          save();
-          render();
-          drawCalendar();
-        }
-        return notes;
-      }
-
-      async function ask(text) {
-        chatLog.push({ role: "user", text });
-        paintChat();
-        const pending = { role: "assistant", text: "Checking the bench…" };
-        chatLog.push(pending);
-        paintChat();
-        try {
-          const response = await fetch("/api/desk", {
+          const response = await fetch("/api/order-intake", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ brief: shopFacts(text), messages: chatLog.filter((message) => message !== pending) }),
-          });
-          const data = await response.json();
-          const notes = ownerAskedToChange(text) && Array.isArray(data.changes) ? applyDeskChanges(data.changes) : [];
-          pending.text = [data.reply || data.error || "No answer.", notes.length ? notes.join(" ") : ""].filter(Boolean).join(" ");
-        } catch {
-          pending.text = "I could not reach the desk.";
-        }
-        paintChat();
-      }
-
-      document.querySelector("#open-chat").onclick = () => {
-        chatBox.showModal();
-        if (!chatLog.length) ask("How many orders can I still take this month?");
-      };
-      document.querySelector("#close-chat").onclick = () => chatBox.close();
-      document.querySelector("#chat-form").onsubmit = (event) => {
-        event.preventDefault();
-        const input = event.target.elements.text;
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = "";
-        ask(text);
-      };
-
-      document.querySelector("#print-points").value = String(storedNumber("hax-print-points", 2));
-      document.querySelector("#paint-points").value = String(storedNumber("hax-paint-points", 3));
-      document.querySelector("#return-days").value = localStorage.getItem("hax-return-days") || "1";
-      function saveCapacity() {
-        localStorage.setItem("hax-print-points", document.querySelector("#print-points").value);
-        localStorage.setItem("hax-paint-points", document.querySelector("#paint-points").value);
-        localStorage.setItem("hax-return-days", document.querySelector("#return-days").value);
-        render();
-        drawCalendar();
-      }
-      document.querySelector("#print-points").onchange = saveCapacity;
-      document.querySelector("#paint-points").onchange = saveCapacity;
-      document.querySelector("#return-days").onchange = saveCapacity;
-      document.querySelector("#add-close").onclick = () => {
-        const date = document.querySelector("#close-date").value;
-        if (!date) return;
-        closures.push({ date, type: document.querySelector("#close-type").value });
-        saveExtra();
-        render();
-        drawCalendar();
-      };
-      document.querySelector("main").onclick = (event) => {
-        const range = event.target.closest("[data-range]");
-        if (range) {
-          moneyRange = range.dataset.range;
-          document.querySelector("#money-from").value = "";
-          document.querySelector("#money-to").value = "";
-          render();
-          return;
-        }
-        const close = event.target.closest("[data-close]");
-        if (close) {
-          closures.splice(Number(close.dataset.close), 1);
-          saveExtra();
-          render();
-          drawCalendar();
-          return;
-        }
-        const task = event.target.closest("[data-task]");
-        if (task?.dataset.task) {
-          const order = orders.find((item) => item.id === task.dataset.order);
-          const figure = order ? withFigures(order).figures[Number(task.dataset.figure)] : null;
-          const remote = order && painterOf(order) === "remote";
-          const next = { Pending: "Printing", Printing: remote ? "Ready for Ship-out" : "Ready for Painting", "Ready for Ship-out": "Shipped", Shipped: "Received", Received: "Painting", "Ready for Painting": "Painting", Painting: "Shipping", Shipping: "Completed" }[figure?.stage];
-          if (figure && next === task.dataset.task) {
-            setFigureStage(order.id, Number(task.dataset.figure), next);
-            save();
-            render();
-            drawCalendar();
-          }
-          return;
-        }
-        if (event.target.id === "make-shipment") {
-          const picked = [...document.querySelectorAll("[data-pack]:checked")].map((box) => box.dataset.pack);
-          if (!picked.length) return;
-          shipments.unshift({
-            id: `S${String(Date.now()).slice(-6)}`,
-            status: "Preparing",
-            courier: "",
-            tracking: "",
-            cost: "",
-            returnCost: "",
-            shipOut: "",
-            expectedArrival: "",
-            actualArrival: "",
-            returnShip: "",
-            returnArrival: "",
-            figures: picked.map((key) => {
-              const [orderId, index] = key.split(":");
-              const order = orders.find((item) => item.id === orderId);
-              return { key, orderId, index: Number(index), name: order?.name || "Order" };
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              size: m.size.value,
+              color: state.color,
+              qty: m.qty,
+              name: $("name").value.trim(),
+              contact: $("contact").value.trim(),
+              due: $("due").value,
+              details: "",
+              payMode: m.mode,
+              customAmount: m.mode === "custom" ? m.now : 0,
+              method: $("methodWrap").style.display === "none" ? "" : $("method").value,
+              website: $("website").value,
+              seconds: Math.round((Date.now() - openedAt) / 1000),
             }),
           });
-          saveExtra();
-          render();
-          return;
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Something went wrong. Please try again or message us on Facebook.");
+          showDone(result, m);
+        } catch (error) {
+          fail(error.message);
+          button.disabled = false;
+          button.textContent = "Place order";
         }
-        const action = event.target.closest("[data-ship-do]");
-        if (!action) return;
-        const shipment = shipments.find((item) => item.id === action.dataset.id);
-        if (!shipment) return;
-        const need = { Shipped: ["Ready for Ship-out"], Received: ["Shipped"], Painting: ["Received", "Ready for Painting"], Completed: ["Painting"] }[action.dataset.shipDo];
-        if (need) {
-          const ready = shipment.figures.every((item) => {
-            const order = orders.find((entry) => entry.id === item.orderId);
-            return order && need.includes(withFigures(order).figures[item.index]?.stage);
-          });
-          if (!ready) return;
-          const stage = action.dataset.shipDo === "Completed" ? "Shipping" : action.dataset.shipDo;
-          for (const item of shipment.figures) setFigureStage(item.orderId, item.index, stage);
-          shipment.status = action.dataset.shipDo === "Completed" ? "Painting Complete" : action.dataset.shipDo;
-          if (action.dataset.shipDo === "Shipped") {
-            shipment.shipOut = iso(new Date());
-            const arrival = new Date();
-            arrival.setDate(arrival.getDate() + shipDays());
-            shipment.expectedArrival = iso(arrival);
-          }
-          if (action.dataset.shipDo === "Received") shipment.actualArrival = iso(new Date());
-          save();
-        }
-        if (action.dataset.shipDo === "Return") {
-          shipment.status = "Return Shipment";
-          shipment.returnShip = iso(new Date());
-        }
-        if (action.dataset.shipDo === "Back") {
-          shipment.status = "Received Back";
-          shipment.returnArrival = iso(new Date());
-        }
-        saveExtra();
-        render();
-        drawCalendar();
-      };
-      document.querySelector("main").onchange = (event) => {
-        const field = event.target.closest("[data-field]");
-        if (field?.dataset.ship) {
-          const shipment = shipments.find((item) => item.id === field.dataset.ship);
-          if (!shipment) return;
-          shipment[field.dataset.field] = field.dataset.field === "cost" || field.dataset.field === "returnCost" ? Number(field.value) || 0 : field.value;
-          saveExtra();
-          render();
-          return;
-        }
-        if (event.target.id === "money-from" || event.target.id === "money-to") {
-          moneyRange = "custom";
-          render();
-        }
-      };
+      });
 
-      render();
-
-      // ---- Shared storage: every hax-* setting/order is mirrored to the server so all devices match. ----
-      (() => {
-        const PREFIX = "hax-";
-        const FLAG = "hax-synced";
-        const nativeSet = Storage.prototype.setItem;
-        const nativeRemove = Storage.prototype.removeItem;
-        const label = document.querySelector("#sync-state");
-        const show = (text) => { label.textContent = text; };
-        let version = 0;
-        let ready = false;
-        let busy = false;
-        let dirty = false;
-        let timer = null;
-
-        function localDoc() {
-          const doc = {};
-          for (let i = 0; i < localStorage.length; i += 1) {
-            const key = localStorage.key(i);
-            if (key.startsWith(PREFIX) && key !== FLAG) doc[key] = localStorage.getItem(key);
-          }
-          return doc;
-        }
-        function listOf(value) { try { const v = JSON.parse(value || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } }
-        // Union of orders by id; `winner` decides which copy is kept when both devices have the same id.
-        function merge(server, local, winner) {
-          const out = { ...local, ...server };
-          if (winner === "local") Object.assign(out, local);
-          for (const key of ["hax-orders", "hax-closures", "hax-shipments"]) {
-            if (server[key] === undefined && local[key] === undefined) continue;
-            const first = listOf(winner === "local" ? local[key] : server[key]);
-            const second = listOf(winner === "local" ? server[key] : local[key]);
-            const seen = new Set(first.map((item) => item.id ?? JSON.stringify(item)));
-            out[key] = JSON.stringify([...first, ...second.filter((item) => !seen.has(item.id ?? JSON.stringify(item)))]);
-          }
-          return out;
-        }
-        function applyLocally(doc) {
-          for (const key of Object.keys(doc)) nativeSet.call(localStorage, key, doc[key]);
-          for (const key of Object.keys(localDoc())) if (!(key in doc)) nativeRemove.call(localStorage, key);
-          orders = load().map(withFigures);
-          loadExtra();
-          render();
-          drawCalendar();
-        }
-        function login() {
-          if (document.querySelector("#login-gate")) return;
-          const gate = document.createElement("div");
-          gate.id = "login-gate";
-          gate.style.cssText = "position:fixed;inset:0;background:#fff;z-index:50;display:grid;place-items:center;padding:1.5rem";
-          gate.innerHTML = `<form style="width:min(20rem,100%);text-align:center"><p class="note" style="letter-spacing:.2em;font-weight:800;font-size:.8rem">HAXWORKS</p><h1 style="margin:.5rem 0 1rem;font-size:1.6rem">Orders</h1><input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box" /><button type="submit" style="margin-top:.6rem;width:100%">Open</button><p id="login-err" class="note" style="color:#b3261e;min-height:1.2rem"></p></form>`;
-          document.body.appendChild(gate);
-          const input = gate.querySelector("#login-pass");
-          input.focus();
-          gate.querySelector("form").onsubmit = async (event) => {
-            event.preventDefault();
-            const response = await fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: input.value }) }).catch(() => null);
-            if (response?.ok) { gate.remove(); start(); }
-            else gate.querySelector("#login-err").textContent = response ? "Wrong password." : "No connection.";
-          };
-        }
-        async function start() {
-          show("Syncing…");
-          const response = await fetch("/api/orders", { cache: "no-store" }).catch(() => null);
-          if (!response) { show("Offline — saved on this device only"); return; }
-          if (response.status === 401) { show(""); login(); return; }
-          const remote = await response.json();
-          const firstTime = localStorage.getItem(FLAG) !== "1";
-          const local = localDoc();
-          const merged = firstTime ? merge(remote.data || {}, local, "server") : (remote.data || {});
-          version = remote.version;
-          applyLocally(merged);
-          nativeSet.call(localStorage, FLAG, "1");
-          ready = true;
-          if (firstTime && JSON.stringify(merged) !== JSON.stringify(remote.data || {})) await push();
-          show("Synced ✓");
-        }
-        async function push() {
-          if (busy) { dirty = true; return; }
-          busy = true;
-          dirty = false;
-          show("Saving…");
-          try {
-            let response = await fetch("/api/orders", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: localDoc(), baseVersion: version }) });
-            if (response.status === 409) {
-              // Another device saved first: keep both devices' orders (this device wins ties), then save again.
-              const theirs = await response.json();
-              const merged = merge(theirs.data || {}, localDoc(), "local");
-              version = theirs.version;
-              applyLocally(merged);
-              response = await fetch("/api/orders", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: merged, baseVersion: version }) });
-            }
-            if (response.status === 401) { show(""); login(); return; }
-            if (!response.ok) throw new Error("save failed");
-            version = (await response.json()).version;
-            show("Synced ✓");
-          } catch {
-            show("Offline — will retry");
-            dirty = true;
-          } finally {
-            busy = false;
-            if (dirty) { clearTimeout(timer); timer = setTimeout(() => { timer = null; push(); }, 4000); }
-          }
-        }
-        // Any change to a hax-* value schedules a save.
-        Storage.prototype.setItem = function (key, value) {
-          nativeSet.call(this, key, value);
-          if (this === localStorage && ready && String(key).startsWith(PREFIX) && key !== FLAG) {
-            clearTimeout(timer);
-            timer = setTimeout(() => { timer = null; push(); }, 500);
-          }
-        };
-        async function pull() {
-          if (!ready || busy || dirty || timer || document.querySelector("dialog[open]") || document.hidden) return;
-          const response = await fetch("/api/orders", { cache: "no-store" }).catch(() => null);
-          if (!response?.ok) return;
-          const remote = await response.json();
-          if (remote.version === version) return;
-          version = remote.version;
-          applyLocally(remote.data || {});
-          show("Synced ✓");
-        }
-        setInterval(pull, 15000);
-        document.addEventListener("visibilitychange", pull);
-        window.addEventListener("online", () => { if (ready) push(); });
-        start();
-      })();
+      function showDone(result, m) {
+        $("formView").style.display = "none";
+        $("done").style.display = "block";
+        $("dName").textContent = $("name").value.trim().split(" ")[0];
+        $("dRef").textContent = `ORDER #${result.ref}`;
+        $("dSummary").innerHTML = [
+          ["Size", m.size.name], ["Box color", state.color], ["Quantity", m.qty],
+          ["Order total", peso(result.total)], ["Paying now", peso(result.payNow)], ["Balance later", peso(Math.max(0, result.total - result.payNow))],
+        ].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
+        const method = $("methodWrap").style.display === "none" ? "" : $("method").value;
+        const account = PAYMENT_ACCOUNTS.find((a) => a.method === method);
+        $("acct").innerHTML = account
+          ? `<strong>How to pay ${peso(result.payNow)}</strong><br>${account.method}: ${account.details}<br>Then send a screenshot of your payment on Facebook with your order number.`
+          : `<strong>How to pay ${peso(result.payNow)}</strong><br>Message us on Facebook with your order number and we'll send the payment details right away.` + (state.color === CUSTOM ? `<br>Tell us about your custom design or color there too.` : "");
+        $("fbProof").href = FACEBOOK_MESSENGER;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     </script>
   </body>
 </html>
