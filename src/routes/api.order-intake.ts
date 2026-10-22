@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * Public order form -> the shared orders list (same data the password-protected
- * /orders page shows). The browser is never trusted for money: sizes and prices
- * are re-checked here.
+ * Public order form (/place-order) -> the "Pending approval" list on the
+ * password-protected /orders page (stored under `hax-orders-pending` in the shared
+ * orders doc). Nothing goes into the official `hax-orders` list until it is
+ * confirmed there. The browser is never trusted for money: sizes, prices and the
+ * custom-build fee are re-checked here.
  */
 const PRICES: Record<string, number> = { 'Standard 4"': 899, 'Super 6"': 1799, 'Jumbo 10"': 6499 };
-const COLORS = ["Plum", "Blush Pink", "Sunset Orange", "Midnight Black", "Royal Blue", "Burgundy", "Custom design / color"];
+const CUSTOM = "Custom - Build it with us";
+/** Added to each figure (per piece) whose box option is the custom build. */
+const CUSTOM_FEE = 100;
+const COLORS = ["Plum", "Blush Pink", "Sunset Orange", "Midnight Black", "Royal Blue", "Burgundy", CUSTOM];
 
 type D1 = {
   prepare(sql: string): {
@@ -60,9 +65,9 @@ export const Route = createFileRoute("/api/order-intake")({
           const boxName = clean(raw?.boxName, 13);
           if (!boxName) return json({ error: "Please type the name for every box (max 13 characters)." }, 400);
           if (!PRICES[size]) return json({ error: "Please choose a size for every figure." }, 400);
-          if (!COLORS.includes(color)) return json({ error: "Please choose a box color for every figure." }, 400);
+          if (!COLORS.includes(color)) return json({ error: "Please choose a box color (or Custom - Build it with us) for every figure." }, 400);
           if (!(qty >= 1 && qty <= 10)) return json({ error: "Quantity must be 1 to 10." }, 400);
-          items.push({ size, color, qty, price: PRICES[size], boxName });
+          items.push({ size, color, qty, price: PRICES[size] + (color === CUSTOM ? CUSTOM_FEE : 0), boxName });
         }
 
         const total = items.reduce((sum, it) => sum + it.price * it.qty, 0);
@@ -88,7 +93,7 @@ export const Route = createFileRoute("/api/order-intake")({
         const orders = items.map((it, i) => {
           const note = [
             `🛒 Order #${ref}${items.length > 1 ? ` (figure ${i + 1} of ${items.length})` : ""}`,
-            `Box: ${it.color}`,
+            `Box: ${it.color}${it.color === CUSTOM ? ` (+${money(CUSTOM_FEE)} per figure, included)` : ""}`,
             `Name on box: ${it.boxName}`,
             `Contact: ${contact}`,
             i === 0
@@ -97,16 +102,31 @@ export const Route = createFileRoute("/api/order-intake")({
           ].join(" · ");
           return { id: String(base + i), name, size: it.size, qty: it.qty, due, paid: 0, balance: it.price * it.qty, status: "Pending", note, rushDays: 0, source: "online" };
         });
+        // Waits in "Pending approval" on /orders; Confirm moves `orders` into hax-orders.
+        const pending = {
+          id: `p${base}`,
+          ref,
+          createdAt: new Date(base).toISOString(),
+          name,
+          contact,
+          due,
+          method,
+          payMode: custom ? "custom" : "dp",
+          payNow,
+          total,
+          items: items.map((it) => ({ ...it, customFee: it.color === CUSTOM ? CUSTOM_FEE * it.qty : 0, lineTotal: it.price * it.qty })),
+          orders,
+        };
 
         // Append to the shared orders list; retry if another device saved at the same moment.
         for (let attempt = 0; attempt < 4; attempt += 1) {
           const row = await d1.prepare("select value, version from app_state where key = 'orders'").bind().first<{ value: string; version: number }>();
           const doc: Record<string, string> = row ? JSON.parse(row.value) : {};
           let list: unknown[] = [];
-          try { list = JSON.parse(doc["hax-orders"] || "[]"); } catch { list = []; }
+          try { list = JSON.parse(doc["hax-orders-pending"] || "[]"); } catch { list = []; }
           if (!Array.isArray(list)) list = [];
-          list.push(...orders);
-          doc["hax-orders"] = JSON.stringify(list);
+          list.push(pending);
+          doc["hax-orders-pending"] = JSON.stringify(list);
           const version = row?.version ?? 0;
           const result = row
             ? await d1.prepare("update app_state set value = ?1, version = ?2, updated_at = datetime('now') where key = 'orders' and version = ?3").bind(JSON.stringify(doc), version + 1, version).run()
