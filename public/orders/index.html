@@ -102,6 +102,14 @@
         .stats { grid-template-columns: 1fr 1fr; }
         header { align-items: flex-start; gap: 0.8rem; }
       }
+      #pending-box { border: 2px solid #e0a400; background: #fffaf0; border-radius: 1rem; padding: 0.9rem 1rem; margin: 1rem 0; }
+      #pending-box h2 { margin: 0 0 0.5rem; }
+      #pending-box .count { display: inline-block; min-width: 1.5rem; text-align: center; background: #e0a400; color: #fff; border-radius: 999px; padding: 0 0.5rem; font-size: 0.85rem; }
+      .pending-card { background: #fff; border: 1px solid #eadfc4; border-radius: 0.8rem; padding: 0.7rem 0.9rem; margin-top: 0.6rem; font-size: 0.9rem; line-height: 1.45; }
+      .pending-card ul { margin: 0.3rem 0; padding-left: 1.1rem; }
+      .pending-card .actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+      .pending-card button.confirm { background: #0a7a43; color: #fff; }
+      .pending-card button.decline { background: #fff; color: #b3261e; border: 1.5px solid #b3261e; }
     </style>
   </head>
   <body>
@@ -116,6 +124,11 @@
     <main>
       <p class="note">Only for you</p>
       <h1>Orders</h1>
+      <section id="pending-box" hidden>
+        <h2>⏳ Pending approval <span class="count" id="pending-count">0</span></h2>
+        <p class="note" style="margin:0">Orders placed on the customer order page. Confirm to add them to your orders list, or decline to remove them.</p>
+        <div id="pending-list"></div>
+      </section>
       <div class="stats" id="stats"></div>
       <p class="note" id="undated"></p>
       <div class="filters">
@@ -502,6 +515,7 @@
           : `<div class="tags"><span class="tag remote">🚚 Remote painter</span></div>`;
       }
       function render() {
+        renderPending();
         const completed = orders.filter((order) => done(order.status));
         const pending = orders.filter((order) => !done(order.status));
         const paid = orders.reduce((sum, order) => sum + Number(order.paid || 0), 0);
@@ -1330,6 +1344,63 @@
         }
       };
 
+      // ---- Pending approval: online orders wait here until confirmed. ----
+      // hax-orders-pending: [{ id, ref, createdAt, name, contact, due, method, payMode, payNow, total, items, orders }]
+      // hax-pending-resolved: ids already confirmed/declined (so a sync merge can't bring them back).
+      function readList(key) {
+        try { const v = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
+      }
+      function pendingOrders() {
+        const resolved = new Set(readList("hax-pending-resolved"));
+        return readList("hax-orders-pending").filter((p) => p && !resolved.has(p.id));
+      }
+      function resolvePending(id) {
+        const resolved = readList("hax-pending-resolved");
+        if (!resolved.includes(id)) resolved.push(id);
+        localStorage.setItem("hax-pending-resolved", JSON.stringify(resolved.slice(-500)));
+        localStorage.setItem("hax-orders-pending", JSON.stringify(readList("hax-orders-pending").filter((p) => p && p.id !== id)));
+      }
+      function renderPending() {
+        const list = pendingOrders();
+        const box = document.querySelector("#pending-box");
+        if (!box) return;
+        box.hidden = list.length === 0;
+        document.querySelector("#pending-count").textContent = String(list.length);
+        document.querySelector("#pending-list").innerHTML = list.map((p) => {
+          const items = (p.items || []).map((it) => `<li>${escapeHtml(it.qty)}× ${escapeHtml(it.size)} · ${escapeHtml(it.color)}${it.customFee ? ` <strong>(+${money.format(it.customFee)} custom)</strong>` : ""} · “${escapeHtml(it.boxName)}” — ${money.format(Number(it.lineTotal) || 0)}</li>`).join("");
+          const when = p.createdAt ? new Date(p.createdAt).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
+          return `<div class="pending-card">
+            <strong>Order #${escapeHtml(p.ref)}</strong> · ${escapeHtml(p.name)} · ${escapeHtml(p.contact)}<br>
+            <span class="note">${escapeHtml(when)}${p.due ? ` · needed by ${escapeHtml(p.due)}` : ""}</span>
+            <ul>${items}</ul>
+            Total <strong>${money.format(Number(p.total) || 0)}</strong> · says paying ${money.format(Number(p.payNow) || 0)}${p.method ? ` via ${escapeHtml(p.method)}` : ""} (${p.payMode === "custom" ? "custom amount" : "50% down"})
+            <div class="actions">
+              <button type="button" class="confirm" data-pending-confirm="${escapeHtml(p.id)}">Confirm</button>
+              <button type="button" class="decline" data-pending-decline="${escapeHtml(p.id)}">Decline</button>
+            </div>
+          </div>`;
+        }).join("");
+      }
+      document.addEventListener("click", (event) => {
+        const confirmBtn = event.target.closest("[data-pending-confirm]");
+        const declineBtn = event.target.closest("[data-pending-decline]");
+        if (!confirmBtn && !declineBtn) return;
+        const id = (confirmBtn || declineBtn).dataset[confirmBtn ? "pendingConfirm" : "pendingDecline"];
+        const item = pendingOrders().find((p) => p.id === id);
+        if (!item) return;
+        if (declineBtn) {
+          if (!window.confirm(`Decline and remove order #${item.ref} from ${item.name}? This can't be undone.`)) return;
+          resolvePending(id);
+          render();
+          return;
+        }
+        const have = new Set(orders.map((order) => order.id));
+        for (const row of item.orders || []) if (!have.has(row.id)) orders.push(withFigures(row));
+        save();
+        resolvePending(id);
+        render();
+      });
+
       render();
 
       // ---- Shared storage: every hax-* setting/order is mirrored to the server so all devices match. ----
@@ -1359,7 +1430,7 @@
         function merge(server, local, winner) {
           const out = { ...local, ...server };
           if (winner === "local") Object.assign(out, local);
-          for (const key of ["hax-orders", "hax-closures", "hax-shipments"]) {
+          for (const key of ["hax-orders", "hax-closures", "hax-shipments", "hax-orders-pending", "hax-pending-resolved"]) {
             if (server[key] === undefined && local[key] === undefined) continue;
             const first = listOf(winner === "local" ? local[key] : server[key]);
             const second = listOf(winner === "local" ? server[key] : local[key]);
