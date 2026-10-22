@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as OrderRouteImport } from './routes/order'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ReviewRouteImport } from './routes/review'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SiteFileRouteImport } from './routes/site-file'
 import { Route as ApiDeskRouteImport } from './routes/api.desk'
+import { Route as ApiOrderIntakeRouteImport } from './routes/api.order-intake'
 import { Route as ApiOrdersRouteImport } from './routes/api.orders'
 import { Route as ApiReviewClickRouteImport } from './routes/api.review-click'
 
@@ -27,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderRoute = OrderRouteImport.update({
+  id: '/order',
+  path: '/order',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -54,6 +61,11 @@ const ApiDeskRoute = ApiDeskRouteImport.update({
   path: '/api/desk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOrderIntakeRoute = ApiOrderIntakeRouteImport.update({
+  id: '/api/order-intake',
+  path: '/api/order-intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOrdersRoute = ApiOrdersRouteImport.update({
   id: '/api/orders',
   path: '/api/orders',
@@ -68,22 +80,26 @@ const ApiReviewClickRoute = ApiReviewClickRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/notes': typeof NotesRoute
+  '/order': typeof OrderRoute
   '/orders': typeof OrdersRoute
   '/review': typeof ReviewRoute
   '/shop': typeof ShopRoute
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/order-intake': typeof ApiOrderIntakeRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/review-click': typeof ApiReviewClickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/notes': typeof NotesRoute
+  '/order': typeof OrderRoute
   '/orders': typeof OrdersRoute
   '/review': typeof ReviewRoute
   '/shop': typeof ShopRoute
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/order-intake': typeof ApiOrderIntakeRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/review-click': typeof ApiReviewClickRoute
 }
@@ -91,11 +107,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/notes': typeof NotesRoute
+  '/order': typeof OrderRoute
   '/orders': typeof OrdersRoute
   '/review': typeof ReviewRoute
   '/shop': typeof ShopRoute
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/order-intake': typeof ApiOrderIntakeRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/review-click': typeof ApiReviewClickRoute
 }
@@ -104,33 +122,39 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/notes'
+    | '/order'
     | '/orders'
     | '/review'
     | '/shop'
     | '/site-file'
     | '/api/desk'
+    | '/api/order-intake'
     | '/api/orders'
     | '/api/review-click'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/notes'
+    | '/order'
     | '/orders'
     | '/review'
     | '/shop'
     | '/site-file'
     | '/api/desk'
+    | '/api/order-intake'
     | '/api/orders'
     | '/api/review-click'
   id:
     | '__root__'
     | '/'
     | '/notes'
+    | '/order'
     | '/orders'
     | '/review'
     | '/shop'
     | '/site-file'
     | '/api/desk'
+    | '/api/order-intake'
     | '/api/orders'
     | '/api/review-click'
   fileRoutesById: FileRoutesById
@@ -138,11 +162,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   NotesRoute: typeof NotesRoute
+  OrderRoute: typeof OrderRoute
   OrdersRoute: typeof OrdersRoute
   ReviewRoute: typeof ReviewRoute
   ShopRoute: typeof ShopRoute
   SiteFileRoute: typeof SiteFileRoute
   ApiDeskRoute: typeof ApiDeskRoute
+  ApiOrderIntakeRoute: typeof ApiOrderIntakeRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiReviewClickRoute: typeof ApiReviewClickRoute
 }
@@ -161,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order': {
+      id: '/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -198,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDeskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/order-intake': {
+      id: '/api/order-intake'
+      path: '/api/order-intake'
+      fullPath: '/api/order-intake'
+      preLoaderRoute: typeof ApiOrderIntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/orders': {
       id: '/api/orders'
       path: '/api/orders'
@@ -218,11 +258,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   NotesRoute: NotesRoute,
+  OrderRoute: OrderRoute,
   OrdersRoute: OrdersRoute,
   ReviewRoute: ReviewRoute,
   ShopRoute: ShopRoute,
   SiteFileRoute: SiteFileRoute,
   ApiDeskRoute: ApiDeskRoute,
+  ApiOrderIntakeRoute: ApiOrderIntakeRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiReviewClickRoute: ApiReviewClickRoute,
 }
