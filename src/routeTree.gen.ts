@@ -20,6 +20,9 @@ import { Route as ApiDeskRouteImport } from './routes/api.desk'
 import { Route as ApiOrderIntakeRouteImport } from './routes/api.order-intake'
 import { Route as ApiOrdersRouteImport } from './routes/api.orders'
 import { Route as ApiReviewClickRouteImport } from './routes/api.review-click'
+import { Route as ApiOrdersTokenRouteImport } from './routes/api.orders.token'
+import { Route as ApiOrdersItemIdRouteImport } from './routes/api.orders.item.$id'
+import { Route as ApiOrdersPendingIdRouteImport } from './routes/api.orders.pending.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +79,21 @@ const ApiReviewClickRoute = ApiReviewClickRouteImport.update({
   path: '/api/review-click',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOrdersTokenRoute = ApiOrdersTokenRouteImport.update({
+  id: '/token',
+  path: '/token',
+  getParentRoute: () => ApiOrdersRoute,
+} as any)
+const ApiOrdersItemIdRoute = ApiOrdersItemIdRouteImport.update({
+  id: '/item/$id',
+  path: '/item/$id',
+  getParentRoute: () => ApiOrdersRoute,
+} as any)
+const ApiOrdersPendingIdRoute = ApiOrdersPendingIdRouteImport.update({
+  id: '/pending/$id',
+  path: '/pending/$id',
+  getParentRoute: () => ApiOrdersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,8 +105,11 @@ export interface FileRoutesByFullPath {
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/order-intake': typeof ApiOrderIntakeRoute
-  '/api/orders': typeof ApiOrdersRoute
+  '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/review-click': typeof ApiReviewClickRoute
+  '/api/orders/token': typeof ApiOrdersTokenRoute
+  '/api/orders/item/$id': typeof ApiOrdersItemIdRoute
+  '/api/orders/pending/$id': typeof ApiOrdersPendingIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,8 +121,11 @@ export interface FileRoutesByTo {
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/order-intake': typeof ApiOrderIntakeRoute
-  '/api/orders': typeof ApiOrdersRoute
+  '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/review-click': typeof ApiReviewClickRoute
+  '/api/orders/token': typeof ApiOrdersTokenRoute
+  '/api/orders/item/$id': typeof ApiOrdersItemIdRoute
+  '/api/orders/pending/$id': typeof ApiOrdersPendingIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +138,11 @@ export interface FileRoutesById {
   '/site-file': typeof SiteFileRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/order-intake': typeof ApiOrderIntakeRoute
-  '/api/orders': typeof ApiOrdersRoute
+  '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/review-click': typeof ApiReviewClickRoute
+  '/api/orders/token': typeof ApiOrdersTokenRoute
+  '/api/orders/item/$id': typeof ApiOrdersItemIdRoute
+  '/api/orders/pending/$id': typeof ApiOrdersPendingIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +158,9 @@ export interface FileRouteTypes {
     | '/api/order-intake'
     | '/api/orders'
     | '/api/review-click'
+    | '/api/orders/token'
+    | '/api/orders/item/$id'
+    | '/api/orders/pending/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +174,9 @@ export interface FileRouteTypes {
     | '/api/order-intake'
     | '/api/orders'
     | '/api/review-click'
+    | '/api/orders/token'
+    | '/api/orders/item/$id'
+    | '/api/orders/pending/$id'
   id:
     | '__root__'
     | '/'
@@ -157,6 +190,9 @@ export interface FileRouteTypes {
     | '/api/order-intake'
     | '/api/orders'
     | '/api/review-click'
+    | '/api/orders/token'
+    | '/api/orders/item/$id'
+    | '/api/orders/pending/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,7 +205,7 @@ export interface RootRouteChildren {
   SiteFileRoute: typeof SiteFileRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiOrderIntakeRoute: typeof ApiOrderIntakeRoute
-  ApiOrdersRoute: typeof ApiOrdersRoute
+  ApiOrdersRoute: typeof ApiOrdersRouteWithChildren
   ApiReviewClickRoute: typeof ApiReviewClickRoute
 }
 
@@ -252,8 +288,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiReviewClickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/orders/token': {
+      id: '/api/orders/token'
+      path: '/token'
+      fullPath: '/api/orders/token'
+      preLoaderRoute: typeof ApiOrdersTokenRouteImport
+      parentRoute: typeof ApiOrdersRoute
+    }
+    '/api/orders/item/$id': {
+      id: '/api/orders/item/$id'
+      path: '/item/$id'
+      fullPath: '/api/orders/item/$id'
+      preLoaderRoute: typeof ApiOrdersItemIdRouteImport
+      parentRoute: typeof ApiOrdersRoute
+    }
+    '/api/orders/pending/$id': {
+      id: '/api/orders/pending/$id'
+      path: '/pending/$id'
+      fullPath: '/api/orders/pending/$id'
+      preLoaderRoute: typeof ApiOrdersPendingIdRouteImport
+      parentRoute: typeof ApiOrdersRoute
+    }
   }
 }
+
+interface ApiOrdersRouteChildren {
+  ApiOrdersTokenRoute: typeof ApiOrdersTokenRoute
+  ApiOrdersItemIdRoute: typeof ApiOrdersItemIdRoute
+  ApiOrdersPendingIdRoute: typeof ApiOrdersPendingIdRoute
+}
+
+const ApiOrdersRouteChildren: ApiOrdersRouteChildren = {
+  ApiOrdersTokenRoute: ApiOrdersTokenRoute,
+  ApiOrdersItemIdRoute: ApiOrdersItemIdRoute,
+  ApiOrdersPendingIdRoute: ApiOrdersPendingIdRoute,
+}
+
+const ApiOrdersRouteWithChildren = ApiOrdersRoute._addFileChildren(
+  ApiOrdersRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -265,7 +338,7 @@ const rootRouteChildren: RootRouteChildren = {
   SiteFileRoute: SiteFileRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiOrderIntakeRoute: ApiOrderIntakeRoute,
-  ApiOrdersRoute: ApiOrdersRoute,
+  ApiOrdersRoute: ApiOrdersRouteWithChildren,
   ApiReviewClickRoute: ApiReviewClickRoute,
 }
 export const routeTree = rootRouteImport
