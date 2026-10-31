@@ -7,56 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
  *   PUT  { data, baseVersion }     -> saves; 409 if another device saved first
  * Password: ORDERS_PASSWORD secret (falls back to HW123 until you set one).
  */
-type D1 = {
-  prepare(sql: string): {
-    bind(...values: unknown[]): {
-      run(): Promise<unknown>;
-      first<T>(): Promise<T | null>;
-    };
-  };
-};
-
-const COOKIE = "hax_orders";
-const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store", ...headers },
-  });
-
-const password = () => process.env.ORDERS_PASSWORD?.trim() || "HW123";
-
-async function token(): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password()), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("haxworks-orders-v1"));
-  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function same(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-async function authed(request: Request) {
-  const cookie = request.headers.get("cookie") || "";
-  const match = cookie.split(/;\s*/).find((part) => part.startsWith(`${COOKIE}=`));
-  return Boolean(match) && same(match!.slice(COOKIE.length + 1), await token());
-}
-
-async function db(): Promise<D1> {
-  const { env } = (await import("cloudflare:workers")) as unknown as { env: { DB?: D1 } };
-  if (!env.DB) throw new Error("D1 binding `DB` is missing");
-  await env.DB.prepare(
-    "create table if not exists app_state (key text primary key, value text not null, version integer not null default 0, updated_at text not null default (datetime('now')))",
-  )
-    .bind()
-    .run();
-  return env.DB;
-}
-
-type Row = { value: string; version: number };
-const read = (d1: D1) => d1.prepare("select value, version from app_state where key = 'orders'").bind().first<Row>();
+import { COOKIE, authed, db, json, password, read, same, token } from "@/lib/orders-store.server";
 
 export const Route = createFileRoute("/api/orders")({
   server: {
