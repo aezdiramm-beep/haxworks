@@ -118,6 +118,7 @@
         <h1>Order your custom figure</h1>
         <p class="lead">Pick a size, a box color and how you'd like to pay. It takes about a minute, and we'll confirm your order shortly after.</p>
         <p class="hint"><strong>Current lead time: 15–20 days.</strong></p>
+        <p class="hint">Already ordered? <a href="/track-order/">Track your order</a>.</p>
 
         <form id="order" novalidate>
           <section>
@@ -194,6 +195,7 @@
         <div class="acct" id="acct"></div>
         <p class="shot" id="dCustom" style="display:none">🛠️ <strong>Custom - Build it with us:</strong> please chat with us about your custom build so we can plan every detail together.</p>
         <div class="actions">
+          <a class="btn ghost" id="trackOrder" href="/track-order/">Track your order</a>
           <a class="btn" id="fbProof" href="#" target="_blank" rel="noopener">Back to our chat</a>
         </div>
       </div>
@@ -409,6 +411,7 @@
         $("done").style.display = "block";
         $("dName").textContent = $("name").value.trim().split(" ")[0];
         $("dRef").textContent = `ORDER #${result.ref}`;
+        $("trackOrder").href = `/track-order/?ref=${encodeURIComponent(result.ref)}`;
         const rows = state.lines.map((l, i) => [`Figure ${i + 1}`, `${lineName(l)}${l.color === CUSTOM ? ` (+${peso(CUSTOM_FEE)} each)` : ""} — ${peso(lineTotal(l))}`]);
         rows.push(["Order total", peso(result.total)], ["Paying now", peso(result.payNow)], ["Balance later", peso(Math.max(0, result.total - result.payNow))]);
         rows.push(["Current lead time", "15–20 days"], ["Custom order agreement", "Accepted"]);

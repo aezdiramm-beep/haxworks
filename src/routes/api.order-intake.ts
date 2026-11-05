@@ -90,11 +90,11 @@ export const Route = createFileRoute("/api/order-intake")({
         const money = (n: number) => `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
         // One order row per figure line, all sharing the same order number.
         const base = Date.now();
-        const ref = String(base).slice(-5);
+        const ref = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
         const orders = items.map((it, i) => {
           const note = [
             `🛒 Order #${ref}${items.length > 1 ? ` (figure ${i + 1} of ${items.length})` : ""}`,
-            `Box: ${it.color}${it.color === CUSTOM ? ` (+${money(CUSTOM_FEE)} per figure, included)` : ""}`,
+            `Box color: ${it.color}${it.color === CUSTOM ? ` (+${money(CUSTOM_FEE)} per figure, included)` : ""}`,
             `Name on box: ${it.boxName}`,
             `Contact: ${contact}`,
             "Custom order agreement accepted (v1) · Lead time: 15–20 days",
@@ -102,7 +102,7 @@ export const Route = createFileRoute("/api/order-intake")({
               ? `Says paying ${money(payNow)}${method ? ` via ${method}` : ""} (${custom ? "custom amount" : "50% down"}) for the whole order of ${money(total)} — check payment`
               : `Payment is noted on figure 1 of order #${ref}`,
           ].join(" · ");
-          return { id: String(base + i), name, size: it.size, qty: it.qty, due, paid: 0, balance: it.price * it.qty, status: "Pending", note, rushDays: 0, source: "online" };
+          return { id: String(base + i), ref, name, size: it.size, qty: it.qty, boxColor: it.color, boxName: it.boxName, due, paid: 0, balance: it.price * it.qty, status: "Pending", note, rushDays: 0, source: "online" };
         });
         // Waits in "Pending approval" on /orders; Confirm moves `orders` into hax-orders.
         const pending = {

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Track your order — Haxworks</title>
+  <link rel="icon" href="/favicon.svg" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: #111; font-family: Inter, system-ui, sans-serif; line-height: 1.5; }
+    header { padding: 1.1rem 1.25rem; }
+    a { color: inherit; }
+    header a { font-size: .85rem; font-weight: 800; letter-spacing: .28em; text-decoration: none; }
+    main { max-width: 40rem; margin: 2rem auto; padding: 0 1.25rem 4rem; }
+    h1 { font-size: clamp(2rem, 7vw, 2.9rem); letter-spacing: -.03em; line-height: 1.1; margin-bottom: .75rem; }
+    p { color: #5c5c5c; }
+    label { display: block; font-weight: 600; margin-top: 2rem; }
+    input { width: 100%; border: 2px solid #e4e4e4; border-radius: .8rem; padding: .9rem; font: inherit; margin: .5rem 0 1rem; text-transform: uppercase; }
+    input:focus { outline: 2px solid #111; outline-offset: 2px; }
+    button { width: 100%; background: #111; color: #fff; border: 0; border-radius: 999px; padding: 1rem; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #message { color: #b3261e; min-height: 1.5rem; }
+    #result { background: #f5f5f5; border-radius: 1.3rem; padding: 1.25rem; margin: 1.5rem 0; }
+    h2 { font-size: 1rem; margin: 0; overflow-wrap: anywhere; }
+    #status { font-size: 1.5rem; font-weight: 750; color: #111; margin: .5rem 0; }
+    ol { list-style: none; padding: 0; margin-bottom: 0; }
+    li { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid #ddd; padding: .8rem 0; }
+    li strong { text-align: right; }
+    .help { font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <header><a href="/">HAXWORKS</a></header>
+  <main>
+    <h1>Track your order</h1>
+    <p>See how your custom figure is coming along. Enter the order number from your confirmation page.</p>
+    <form id="tracking">
+      <label for="ref">Order number</label>
+      <input id="ref" name="ref" type="text" required maxlength="24" placeholder="e.g. 12345" autocomplete="off" spellcheck="false" />
+      <button id="lookup" type="submit">Track order</button>
+    </form>
+    <p id="message" role="status" aria-live="polite"></p>
+    <section id="result" hidden aria-live="polite" aria-label="Order status">
+      <h2 id="number"></h2>
+      <p id="status"></p>
+      <p id="explanation"></p>
+      <ol id="figures"></ol>
+      <p class="help">This is the latest status saved by our shop. Check again for updates.</p>
+    </section>
+    <p class="help">Need help with your order? <a href="https://m.me/Haxworks3D" target="_blank" rel="noopener">Message us</a>.</p>
+    <p class="help"><a href="/place-order/">Place a new order</a></p>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    $('ref').value = new URLSearchParams(location.search).get('ref') || '';
+    $('tracking').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      $('lookup').disabled = true;
+      $('lookup').textContent = 'Checking…';
+      $('message').textContent = '';
+      $('result').hidden = true;
+      try {
+        const response = await fetch('/api/track-order', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ref: $('ref').value }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'We could not check your order. Please try again.');
+        $('number').textContent = 'ORDER #' + data.ref;
+        $('status').textContent = data.status;
+        $('explanation').textContent = data.status === 'Awaiting confirmation'
+          ? 'We received your order details. Our shop will confirm your order and payment before production starts.'
+          : data.status === 'Designing' ? 'Your order is confirmed and in our design queue. We will send a 3D preview for your approval before printing.'
+          : data.status === 'Completed' ? 'Our shop has marked your order completed. Thank you for ordering with Haxworks!'
+          : 'Your figure statuses are shown below. Transfers to our painter are part of production, not delivery to you.';
+        $('figures').replaceChildren(...data.figures.map((figure, index) => {
+          const row = document.createElement('li');
+          const label = document.createElement('span'); label.textContent = 'Figure ' + (index + 1);
+          const status = document.createElement('strong'); status.textContent = figure.status;
+          row.append(label, status); return row;
+        }));
+        $('result').hidden = false;
+      } catch (error) {
+        $('message').textContent = error.message || 'Tracking is temporarily unavailable. Please try again.';
+      } finally {
+        $('lookup').disabled = false;
+        $('lookup').textContent = 'Track order';
+      }
+    });
+  </script>
+</body>
+</html>

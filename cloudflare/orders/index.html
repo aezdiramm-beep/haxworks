@@ -91,9 +91,10 @@
       <div class="stats prod" id="production"></div>
       <p class="note" id="undated"></p>
       <div class="filters">
-        <input id="filter-q" type="search" placeholder="Search name or note" />
+        <input id="filter-q" type="search" placeholder="Search name, order number or note" />
         <select id="filter-size">
           <option value="">All sizes</option>
+          <option>Mini 2.5"</option>
           <option>Standard 4"</option>
           <option>Super 6"</option>
           <option>Jumbo 10"</option>
@@ -172,6 +173,7 @@
         <div class="row">
           <label>Size
             <select name="size">
+              <option>Mini 2.5"</option>
               <option>Standard 4"</option>
               <option>Super 6"</option>
               <option>Jumbo 10"</option>
@@ -282,7 +284,7 @@
           .filter((order) => {
             if (size && order.size !== size) return false;
             if (status && orderStage(order) !== status) return false;
-            if (query && !`${order.name} ${order.note || ""}`.toLowerCase().includes(query)) return false;
+            if (query && !`${order.name} ${orderRef(order)} ${order.note || ""}`.toLowerCase().includes(query)) return false;
             return true;
           })
           .sort((a, b) => {
@@ -506,14 +508,14 @@
         const rows = visibleOrders();
         document.querySelector("#rows").innerHTML = rows.length
           ? rows.map((order) => `<tr data-id="${order.id}">
-            <td>${escapeHtml(order.name)}${shipNote(order, placed.filter((figure) => figure.orderId === order.id))}</td>
+            <td>${escapeHtml(order.name)}<div class="note">${orderRef(order) ? `Order #${escapeHtml(orderRef(order))}` : "Order number not assigned"}</div>${shipNote(order, placed.filter((figure) => figure.orderId === order.id))}</td>
             <td>${escapeHtml(order.size)}</td>
             <td>${order.qty}</td>
             <td>${order.due ? formatDay(parseISO(order.due)) : "—"}${order.rushDays ? ` <span class="note">rush ${order.rushDays}d</span>` : ""}</td>
             <td>${money.format(Number(order.paid || 0))}</td>
             <td>${money.format(Number(order.balance || 0))}</td>
             <td>${stageCell(order)}</td>
-            <td class="note">${escapeHtml(order.note || "")}</td>
+            <td class="note" style="white-space:pre-line">${escapeHtml(String(order.note || "").split(" · ").join("\n"))}</td>
           </tr>`).join("")
           : `<tr><td colspan="8" class="note">No orders match.</td></tr>`;
         document.querySelectorAll("[data-sort]").forEach((button) => {
@@ -522,6 +524,9 @@
           button.textContent = on ? `${button.dataset.label} ${sortDir > 0 ? "↑" : "↓"}` : button.dataset.label;
         });
         paintDesk(placed);
+      }
+      function orderRef(order) {
+        return String(order.ref || String(order.note || "").match(/🛒 Order #([A-Z0-9]+)\b/i)?.[1] || "");
       }
       function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, (char) => {
@@ -752,6 +757,8 @@
         event.preventDefault();
         const data = new FormData(form);
         const next = {
+          ...(editing || {}),
+          ref: editing ? (orderRef(editing) || crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()) : crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase(),
           id: editing?.id || String(Date.now()),
           name: String(data.get("name")).trim(),
           size: data.get("size"),
