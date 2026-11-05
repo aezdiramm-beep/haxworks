@@ -7,7 +7,8 @@ import { createFileRoute } from "@tanstack/react-router";
  *   PUT  { data, baseVersion }     -> saves; 409 if another device saved first
  * Password: ORDERS_PASSWORD secret (falls back to HW123 until you set one).
  */
-import { COOKIE, authed, db, json, password, read, same, token } from "@/lib/orders-store.server";
+import { COOKIE, authed, db, json, mutate, password, read, same, token } from "@/lib/orders-store.server";
+import { assignOrderReferences } from "@/lib/order-references";
 
 export const Route = createFileRoute("/api/orders")({
   server: {
@@ -23,8 +24,8 @@ export const Route = createFileRoute("/api/orders")({
       },
       GET: async ({ request }) => {
         if (!(await authed(request))) return json({ error: "Login required" }, 401);
-        const row = await read(await db());
-        return json({ data: row ? JSON.parse(row.value) : {}, version: row?.version ?? 0 });
+        const out = await mutate((doc) => ({ result: null, changed: assignOrderReferences(doc) }));
+        return json({ data: out.data, version: out.version });
       },
       PUT: async ({ request }) => {
         if (!(await authed(request))) return json({ error: "Login required" }, 401);
@@ -36,7 +37,9 @@ export const Route = createFileRoute("/api/orders")({
         if (Number(body.baseVersion) !== current) {
           return json({ error: "Changed on another device", data: row ? JSON.parse(row.value) : {}, version: current }, 409);
         }
-        const value = JSON.stringify(body.data);
+        const data = body.data as Record<string, string>;
+        assignOrderReferences(data);
+        const value = JSON.stringify(data);
         if (value.length > 2_000_000) return json({ error: "Too large" }, 413);
         await d1
           .prepare("insert into app_state (key, value, version) values ('orders', ?1, ?2) on conflict(key) do update set value = ?1, version = ?2, updated_at = datetime('now')")

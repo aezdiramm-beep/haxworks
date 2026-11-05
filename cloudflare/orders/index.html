@@ -306,7 +306,7 @@
         } catch {}
         return SEED;
       }
-      let orders = load().map(withFigures);
+      let orders = load().map(withFigures).map(withOrderRef);
       save();
       function save() {
         localStorage.setItem("hax-orders", JSON.stringify(orders));
@@ -524,6 +524,9 @@
           button.textContent = on ? `${button.dataset.label} ${sortDir > 0 ? "↑" : "↓"}` : button.dataset.label;
         });
         paintDesk(placed);
+      }
+      function withOrderRef(order) {
+        return order.ref ? order : { ...order, ref: orderRef(order) || crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase() };
       }
       function orderRef(order) {
         return String(order.ref || String(order.note || "").match(/🛒 Order #([A-Z0-9]+)\b/i)?.[1] || "");

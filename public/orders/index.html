@@ -339,7 +339,7 @@
         } catch {}
         return SEED;
       }
-      let orders = load().map(withFigures);
+      let orders = load().map(withFigures).map(withOrderRef);
       save();
       function save() {
         localStorage.setItem("hax-orders", JSON.stringify(orders));
@@ -564,6 +564,9 @@
           button.textContent = on ? `${button.dataset.label} ${sortDir > 0 ? "↑" : "↓"}` : button.dataset.label;
         });
         paintDesk(placed);
+      }
+      function withOrderRef(order) {
+        return order.ref ? order : { ...order, ref: orderRef(order) || crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase() };
       }
       function orderRef(order) {
         return String(order.ref || String(order.note || "").match(/🛒 Order #([A-Z0-9]+)\b/i)?.[1] || "");
@@ -1448,7 +1451,7 @@
         function applyLocally(doc) {
           for (const key of Object.keys(doc)) nativeSet.call(localStorage, key, doc[key]);
           for (const key of Object.keys(localDoc())) if (!(key in doc)) nativeRemove.call(localStorage, key);
-          orders = load().map(withFigures);
+          orders = load().map(withFigures).map(withOrderRef);
           loadExtra();
           render();
           drawCalendar();
