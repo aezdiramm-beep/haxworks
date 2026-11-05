@@ -41,8 +41,8 @@ export function trackOrder(doc: Record<string, string>, ref: string) {
     const all = (status: string) => figures.every((figure) => figure.status === status);
     const status = all("Completed") ? "Completed" : all("Cancelled") ? "Cancelled"
       : all("Designing") ? "Designing" : all(figures[0].status) ? figures[0].status : "In progress";
-    return { ref, status, figures };
+    return { ref, status, figures, ...(active.some((order) => order.paymentReportedAt) ? { paymentReported: true } : {}) };
   }
-  if (pending.length) return { ref, status: "Awaiting confirmation", figures: [] };
+  if (pending.length) return { ref, status: "Awaiting confirmation", figures: [], ...(pending[0].paymentReportedAt ? { paymentReported: true } : {}) };
   return null;
 }

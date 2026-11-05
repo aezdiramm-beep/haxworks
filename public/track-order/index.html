@@ -28,6 +28,8 @@
     li { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid #ddd; padding: .8rem 0; }
     li strong { text-align: right; }
     .help { font-size: .9rem; }
+    #copyRef { background: #7027ad; margin: .8rem 0; }
+    #paymentReport { background: #e8f4e1; color: #215d1b; padding: .7rem; border-radius: .7rem; }
   </style>
 </head>
 <body>
@@ -43,7 +45,10 @@
     <p id="message" role="status" aria-live="polite"></p>
     <section id="result" hidden aria-live="polite" aria-label="Order status">
       <h2 id="number"></h2>
+      <button type="button" id="copyRef">Copy order number</button>
+      <p id="copyStatus" role="status"></p>
       <p id="status"></p>
+      <p id="paymentReport" hidden>Payment reported. Our shop will verify your transfer before confirming payment.</p>
       <p id="explanation"></p>
       <ol id="figures"></ol>
       <p class="help">This is the latest status saved by our shop. Check again for updates.</p>
@@ -65,6 +70,9 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'We could not check your order. Please try again.');
         $('number').textContent = 'ORDER #' + data.ref;
+        $('copyRef').dataset.ref = data.ref;
+        $('copyStatus').textContent = '';
+        $('paymentReport').hidden = !data.paymentReported;
         $('status').textContent = data.status;
         $('explanation').textContent = data.status === 'Awaiting confirmation'
           ? 'We received your order details. Our shop will confirm your order and payment before production starts.'
@@ -85,6 +93,11 @@
         $('lookup').textContent = 'Track order';
       }
     });
+    $('copyRef').onclick = async () => {
+      try { await navigator.clipboard.writeText($('copyRef').dataset.ref); $('copyStatus').textContent = 'Order number copied.'; }
+      catch { $('copyStatus').textContent = "Couldn't copy automatically. Please select the order number above."; }
+    };
+    if (/^(?:\d{5}|[A-F0-9]{12})$/i.test($('ref').value)) $('tracking').requestSubmit();
   </script>
 </body>
 </html>

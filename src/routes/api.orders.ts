@@ -9,6 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
  */
 import { COOKIE, authed, db, json, mutate, password, read, same, token } from "@/lib/orders-store.server";
 import { assignOrderReferences } from "@/lib/order-references";
+import { preservePaymentState } from "@/lib/order-payment";
 
 export const Route = createFileRoute("/api/orders")({
   server: {
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/api/orders")({
           return json({ error: "Changed on another device", data: row ? JSON.parse(row.value) : {}, version: current }, 409);
         }
         const data = body.data as Record<string, string>;
+        preservePaymentState(data, row ? JSON.parse(row.value) : {});
         assignOrderReferences(data);
         const value = JSON.stringify(data);
         if (value.length > 2_000_000) return json({ error: "Too large" }, 413);

@@ -1382,6 +1382,8 @@
             <strong>Order #${escapeHtml(p.ref)}</strong> · ${escapeHtml(p.name)} · ${escapeHtml(p.contact)}<br>
             <span class="note">${escapeHtml(when)}${p.due ? ` · needed by ${escapeHtml(p.due)}` : ""}</span>
             <ul>${items}</ul>
+            <div class="note">Accessory fee: ${money.format(Number(p.accessoryFee) || 0)} · Rush fee: ${money.format(Number(p.rushFee) || 0)}</div>
+            ${p.paymentReportedAt ? '<p style="color:#215d1b;font-weight:700">Customer reports down payment sent — verify transfer.</p>' : ''}
             Total <strong>${money.format(Number(p.total) || 0)}</strong> · says paying ${money.format(Number(p.payNow) || 0)}${p.method ? ` via ${escapeHtml(p.method)}` : ""} (${p.payMode === "custom" ? "custom amount" : "50% down"})
             <div class="actions">
               <button type="button" class="confirm" data-pending-confirm="${escapeHtml(p.id)}">Confirm</button>
