@@ -7,7 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
  * confirmed there. The browser is never trusted for money: sizes, prices and the
  * custom-build fee are re-checked here.
  */
-const PRICES: Record<string, number> = { 'Standard 4"': 899, 'Super 6"': 1799, 'Jumbo 10"': 6499 };
+const PRICES: Record<string, number> = { 'Mini 2.5"': 899, 'Standard 4"': 1599, 'Super 6"': 3099, 'Jumbo 10"': 6499 };
 const CUSTOM = "Custom - Build it with us";
 /** Added to each figure (per piece) whose box option is the custom build. */
 const CUSTOM_FEE = 100;
@@ -53,6 +53,7 @@ export const Route = createFileRoute("/api/order-intake")({
         const name = clean(body.name, 80);
         const contact = clean(body.contact, 120);
         if (!name || !contact) return json({ error: "Please enter your name and how to reach you." }, 400);
+        if (body.agreementAccepted !== true) return json({ error: "Please accept the custom order agreement before placing your order." }, 400);
 
         // One or more figure lines. (An old single size/color/qty form is still accepted.)
         const rawItems = Array.isArray(body.items) ? body.items : [{ size: body.size, color: body.color, qty: body.qty }];
@@ -96,6 +97,7 @@ export const Route = createFileRoute("/api/order-intake")({
             `Box: ${it.color}${it.color === CUSTOM ? ` (+${money(CUSTOM_FEE)} per figure, included)` : ""}`,
             `Name on box: ${it.boxName}`,
             `Contact: ${contact}`,
+            "Custom order agreement accepted (v1) · Lead time: 15–20 days",
             i === 0
               ? `Says paying ${money(payNow)}${method ? ` via ${method}` : ""} (${custom ? "custom amount" : "50% down"}) for the whole order of ${money(total)} — check payment`
               : `Payment is noted on figure 1 of order #${ref}`,
@@ -114,6 +116,7 @@ export const Route = createFileRoute("/api/order-intake")({
           payMode: custom ? "custom" : "dp",
           payNow,
           total,
+          agreement: { accepted: true, version: "v1", acceptedAt: new Date(base).toISOString() },
           items: items.map((it) => ({ ...it, customFee: it.color === CUSTOM ? CUSTOM_FEE * it.qty : 0, lineTotal: it.price * it.qty })),
           orders,
         };

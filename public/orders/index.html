@@ -1204,7 +1204,6 @@
 
       document.querySelector("#open-chat").onclick = () => {
         chatBox.showModal();
-        if (!chatLog.length) ask("How many orders can I still take this month?");
       };
       document.querySelector("#close-chat").onclick = () => chatBox.close();
       document.querySelector("#chat-form").onsubmit = (event) => {
