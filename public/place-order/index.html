@@ -95,6 +95,11 @@
       .qrbox img { width: min(100%, 260px); border: 1px solid var(--line); border-radius: 0.8rem; }
       .qrmeta { font-size: 0.88rem; color: var(--muted); text-align: center; margin-bottom: 0.8rem; }
       .acct .btn { display: block; }
+      .bank-transfer { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+      .bank-detail { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; }
+      .bank-detail span { min-width: 0; overflow-wrap: anywhere; }
+      .bank-detail small { display: block; color: var(--muted); }
+      .copy-bank { flex-shrink: 0; min-height: 2.75rem; border: 1px solid var(--line); border-radius: 999px; padding: 0.5rem 0.85rem; background: #fff; color: var(--ink); font: inherit; cursor: pointer; }
       .shot { background: #fff7d6; border-radius: 1rem; padding: 0.8rem 1rem; font-size: 0.95rem; margin: 0.2rem 0 0.4rem; }
       .acct { text-align: left; margin-top: 1rem; border: 2px solid var(--line); border-radius: 1rem; padding: 0.8rem 1rem; font-size: 0.92rem; line-height: 1.5; }
       .size-h { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
@@ -422,10 +427,30 @@
             ? `<strong>How to pay ${peso(result.payNow)}</strong><br>${account.method}: ${account.details}<br>Then send a screenshot of your payment here in our chat.`
             : `<strong>Pay ${peso(result.payNow)} to get in our queue</strong><br>Your order starts once your payment is confirmed. We'll send the payment details right here in our chat.`;
         }
+        $("acct").insertAdjacentHTML("beforeend", `
+          <div class="bank-transfer">
+            <strong>For bank transfers that don't support QR</strong>
+            <div class="bank-detail"><span><small>Bank</small>Maribank</span><button type="button" class="copy-bank" data-copy-bank="Maribank" aria-label="Copy bank name">Copy</button></div>
+            <div class="bank-detail"><span><small>Account number</small>11016105729</span><button type="button" class="copy-bank" data-copy-bank="11016105729" aria-label="Copy account number">Copy</button></div>
+            <div class="bank-detail"><span><small>Account name</small>Kyla Trishia Encelan</span><button type="button" class="copy-bank" data-copy-bank="Kyla Trishia Encelan" aria-label="Copy account name">Copy</button></div>
+            <p class="hint" id="copyStatus" role="status" aria-live="polite"></p>
+          </div>`);
         $("dCustom").style.display = state.lines.some((l) => l.color === CUSTOM) ? "block" : "none";
         $("fbProof").href = FACEBOOK_MESSENGER;
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+      $("acct").addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-copy-bank]");
+        if (!button) return;
+        try {
+          await navigator.clipboard.writeText(button.dataset.copyBank);
+          $("copyStatus").textContent = `${button.getAttribute("aria-label").replace("Copy ", "")} copied.`;
+          button.textContent = "Copied!";
+          setTimeout(() => { button.textContent = "Copy"; }, 2000);
+        } catch {
+          $("copyStatus").textContent = "Couldn't copy automatically. Please select and copy the detail above.";
+        }
+      });
     </script>
   </body>
 </html>
